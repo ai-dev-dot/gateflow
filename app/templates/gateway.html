@@ -5,30 +5,31 @@
 
 {% block content %}
 <div class="space-y-4">
-  <div class="flex border-b border-gray-200">
-    <button onclick="switchTab('models')" id="tab-models" class="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">模型配置</button>
-    <button onclick="switchTab('keys')" id="tab-keys" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Provider API Key</button>
+  <!-- Tabs -->
+  <div class="flex rounded-lg overflow-hidden" style="border: 1px solid var(--border); width: fit-content;">
+    <button onclick="switchTab('models')" id="tab-models" class="dim-tab active px-4 py-1.5 text-xs font-medium transition-colors">模型配置</button>
+    <button onclick="switchTab('keys')" id="tab-keys" class="dim-tab px-4 py-1.5 text-xs font-medium transition-colors">Provider API Key</button>
   </div>
 
   <!-- Models Tab -->
   <div id="panel-models">
     <div class="flex justify-end mb-3">
-      <button onclick="showModelModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">+ 创建模型</button>
+      <button onclick="showModelModal()" class="btn-primary">+ 创建模型</button>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-gray-500">
+    <div class="gf-card overflow-x-auto">
+      <table class="gf-table">
+        <thead>
           <tr>
-            <th class="text-left px-4 py-2 font-medium">别名</th>
-            <th class="text-left px-4 py-2 font-medium">供应商</th>
-            <th class="text-left px-4 py-2 font-medium">目标模型</th>
-            <th class="text-left px-4 py-2 font-medium">目标 URL</th>
-            <th class="text-right px-4 py-2 font-medium">优先级</th>
-            <th class="text-left px-4 py-2 font-medium">状态</th>
-            <th class="text-right px-4 py-2 font-medium">操作</th>
+            <th>别名</th>
+            <th>供应商</th>
+            <th>目标模型</th>
+            <th>目标 URL</th>
+            <th class="text-right">优先级</th>
+            <th>状态</th>
+            <th class="text-right">操作</th>
           </tr>
         </thead>
-        <tbody id="models-body"><tr><td colspan="7" class="text-center py-8 text-gray-400">加载中...</td></tr></tbody>
+        <tbody id="models-body"><tr><td colspan="7" class="text-center py-8" style="color: var(--text-muted);">加载中...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -36,73 +37,75 @@
   <!-- Provider Keys Tab -->
   <div id="panel-keys" class="hidden">
     <div class="flex justify-end mb-3">
-      <button onclick="showKeyModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">+ 创建 Key</button>
+      <button onclick="showKeyModal()" class="btn-primary">+ 创建 Key</button>
     </div>
-    <div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-gray-500">
+    <div class="gf-card overflow-x-auto">
+      <table class="gf-table">
+        <thead>
           <tr>
-            <th class="text-left px-4 py-2 font-medium">名称</th>
-            <th class="text-left px-4 py-2 font-medium">供应商</th>
-            <th class="text-left px-4 py-2 font-medium">备注</th>
-            <th class="text-left px-4 py-2 font-medium">Key 前缀</th>
-            <th class="text-left px-4 py-2 font-medium">状态</th>
-            <th class="text-right px-4 py-2 font-medium">操作</th>
+            <th>名称</th>
+            <th>供应商</th>
+            <th>备注</th>
+            <th>Key 前缀</th>
+            <th>状态</th>
+            <th class="text-right">操作</th>
           </tr>
         </thead>
-        <tbody id="pkeys-body"><tr><td colspan="6" class="text-center py-8 text-gray-400">加载中...</td></tr></tbody>
+        <tbody id="pkeys-body"><tr><td colspan="6" class="text-center py-8" style="color: var(--text-muted);">加载中...</td></tr></tbody>
       </table>
     </div>
   </div>
 </div>
 
 <!-- Model Modal -->
-<dialog id="model-modal" class="rounded-lg shadow-xl border border-gray-200 p-0 w-full max-w-lg">
-  <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+<dialog id="model-modal">
+  <div class="gf-card-header flex justify-between items-center">
     <h3 id="model-modal-title" class="text-sm font-semibold">创建模型</h3>
-    <button onclick="document.getElementById('model-modal').close()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+    <button onclick="document.getElementById('model-modal').close()" style="color: var(--text-muted); font-size: 18px; background: none; border: none; cursor: pointer;">&times;</button>
   </div>
   <form id="model-form" class="p-4 space-y-3">
     <input type="hidden" id="mf-id">
     <div class="grid grid-cols-2 gap-3">
-      <div><label class="block text-xs font-medium text-gray-700 mb-1">别名</label><input type="text" id="mf-alias" data-field="model_alias" required class="w-full border rounded px-3 py-2 text-sm"></div>
-      <div><label class="block text-xs font-medium text-gray-700 mb-1">供应商</label><input type="text" id="mf-provider" data-field="provider" required class="w-full border rounded px-3 py-2 text-sm"></div>
+      <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">别名</label><input type="text" id="mf-alias" data-field="model_alias" required></div>
+      <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">供应商</label><input type="text" id="mf-provider" data-field="provider" required></div>
     </div>
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">目标模型</label><input type="text" id="mf-target-model" data-field="target_model" required class="w-full border rounded px-3 py-2 text-sm"></div>
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">目标 URL</label><input type="text" id="mf-target-url" data-field="target_url" required class="w-full border rounded px-3 py-2 text-sm" placeholder="如 https://api.openai.com/v1"></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">目标模型</label><input type="text" id="mf-target-model" data-field="target_model" required></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">目标 URL</label><input type="text" id="mf-target-url" data-field="target_url" required placeholder="如 https://api.openai.com/v1"></div>
     <div class="grid grid-cols-3 gap-3">
-      <div><label class="block text-xs font-medium text-gray-700 mb-1">优先级</label><input type="number" id="mf-priority" data-field="priority" value="0" class="w-full border rounded px-3 py-2 text-sm"></div>
-      <div><label class="block text-xs font-medium text-gray-700 mb-1">Temperature</label><input type="number" id="mf-temp" data-field="default_temperature" step="0.1" min="0" max="2" class="w-full border rounded px-3 py-2 text-sm"></div>
-      <div><label class="block text-xs font-medium text-gray-700 mb-1">Max Tokens</label><input type="number" id="mf-max-tokens" data-field="default_max_tokens" class="w-full border rounded px-3 py-2 text-sm"></div>
+      <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">优先级</label><input type="number" id="mf-priority" data-field="priority" value="0"></div>
+      <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Temperature</label><input type="number" id="mf-temp" data-field="default_temperature" step="0.1" min="0" max="2"></div>
+      <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Max Tokens</label><input type="number" id="mf-max-tokens" data-field="default_max_tokens"></div>
     </div>
     <div class="flex items-center gap-2"><input type="checkbox" id="mf-active" checked><label for="mf-active" class="text-sm">启用</label></div>
     <div class="flex justify-end gap-2 pt-2">
-      <button type="button" onclick="document.getElementById('model-modal').close()" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">取消</button>
-      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">保存</button>
+      <button type="button" onclick="document.getElementById('model-modal').close()" class="btn-ghost">取消</button>
+      <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>
 </dialog>
 
 <!-- Provider Key Modal -->
-<dialog id="pkey-modal" class="rounded-lg shadow-xl border border-gray-200 p-0 w-full max-w-md">
-  <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+<dialog id="pkey-modal">
+  <div class="gf-card-header flex justify-between items-center">
     <h3 id="pkey-modal-title" class="text-sm font-semibold">创建 Provider Key</h3>
-    <button onclick="document.getElementById('pkey-modal').close()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+    <button onclick="document.getElementById('pkey-modal').close()" style="color: var(--text-muted); font-size: 18px; background: none; border: none; cursor: pointer;">&times;</button>
   </div>
   <form id="pkey-form" class="p-4 space-y-3">
     <input type="hidden" id="pkf-id">
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">名称</label><input type="text" id="pkf-name" data-field="name" required class="w-full border rounded px-3 py-2 text-sm"></div>
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">供应商</label><input type="text" id="pkf-provider" data-field="provider" required class="w-full border rounded px-3 py-2 text-sm"></div>
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">API Key</label><input type="password" id="pkf-key" data-field="key" class="w-full border rounded px-3 py-2 text-sm" placeholder="留空则不修改（编辑时）"></div>
-    <div><label class="block text-xs font-medium text-gray-700 mb-1">备注</label><input type="text" id="pkf-remark" data-field="remark" class="w-full border rounded px-3 py-2 text-sm"></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">名称</label><input type="text" id="pkf-name" data-field="name" required></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">供应商</label><input type="text" id="pkf-provider" data-field="provider" required></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">API Key</label><input type="password" id="pkf-key" data-field="key" placeholder="留空则不修改（编辑时）"></div>
+    <div><label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">备注</label><input type="text" id="pkf-remark" data-field="remark"></div>
     <div class="flex items-center gap-2"><input type="checkbox" id="pkf-active" checked><label for="pkf-active" class="text-sm">启用</label></div>
     <div class="flex justify-end gap-2 pt-2">
-      <button type="button" onclick="document.getElementById('pkey-modal').close()" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">取消</button>
-      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">保存</button>
+      <button type="button" onclick="document.getElementById('pkey-modal').close()" class="btn-ghost">取消</button>
+      <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>
 </dialog>
 {% endblock %}
+
+{% block head %}{% endblock %}
 
 {% block scripts %}
 <script>
@@ -112,8 +115,8 @@ let pkeyEditingId = null;
 function switchTab(tab) {
   document.getElementById('panel-models').classList.toggle('hidden', tab !== 'models');
   document.getElementById('panel-keys').classList.toggle('hidden', tab !== 'keys');
-  document.getElementById('tab-models').className = tab === 'models' ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600' : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
-  document.getElementById('tab-keys').className = tab === 'keys' ? 'px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600' : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+  document.querySelectorAll('.dim-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
 }
 
 // Models
@@ -122,19 +125,19 @@ async function loadModels() {
     const res = await fetch('/api/gateway/models', { credentials: 'same-origin' });
     const models = await res.json();
     const tbody = document.getElementById('models-body');
-    if (!models.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">暂无模型</td></tr>'; return; }
+    if (!models.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8" style="color: var(--text-muted);">暂无模型</td></tr>'; return; }
     tbody.innerHTML = models.map(m => {
-      const statusColor = m.is_active !== false ? 'green' : 'gray';
-      return `<tr class="border-t border-gray-100 hover:bg-gray-50">
-        <td class="px-4 py-2 font-medium">${m.alias}</td>
-        <td class="px-4 py-2">${m.provider || '—'}</td>
-        <td class="px-4 py-2 font-mono text-xs">${m.target_model}</td>
-        <td class="px-4 py-2 text-xs text-gray-500 truncate max-w-xs">${m.target_url || '—'}</td>
-        <td class="px-4 py-2 text-right">${m.priority ?? 0}</td>
-        <td class="px-4 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800">${m.is_active !== false ? '启用' : '禁用'}</span></td>
-        <td class="px-4 py-2 text-right">
-          <button onclick="editModel('${m.id}')" class="text-blue-600 hover:underline text-xs mr-2">编辑</button>
-          <button onclick="deleteModel('${m.id}', '${m.alias}')" class="text-red-600 hover:underline text-xs">删除</button>
+      const isActive = m.is_active !== false;
+      return `<tr>
+        <td class="font-medium" style="color: var(--text-primary);">${m.alias}</td>
+        <td>${m.provider || '—'}</td>
+        <td class="font-mono text-xs">${m.target_model}</td>
+        <td class="text-xs truncate max-w-xs" style="color: var(--text-muted);">${m.target_url || '—'}</td>
+        <td class="text-right">${m.priority ?? 0}</td>
+        <td>${isActive ? '<span class="gf-tag gf-tag-green">启用</span>' : '<span class="gf-tag gf-tag-gray">禁用</span>'}</td>
+        <td class="text-right">
+          <button onclick="editModel('${m.id}')" class="text-xs mr-2" style="color: var(--accent-light); background: none; border: none; cursor: pointer;">编辑</button>
+          <button onclick="deleteModel('${m.id}', '${m.alias}')" class="text-xs" style="color: var(--danger); background: none; border: none; cursor: pointer;">删除</button>
         </td>
       </tr>`;
     }).join('');
@@ -218,19 +221,19 @@ async function loadProviderKeys() {
     const res = await fetch('/api/gateway/provider-keys', { credentials: 'same-origin' });
     const keys = await res.json();
     const tbody = document.getElementById('pkeys-body');
-    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">暂无 Key</td></tr>'; return; }
+    if (!keys.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8" style="color: var(--text-muted);">暂无 Key</td></tr>'; return; }
     tbody.innerHTML = keys.map(k => {
-      const statusColor = k.is_active !== false ? 'green' : 'gray';
-      return `<tr class="border-t border-gray-100 hover:bg-gray-50">
-        <td class="px-4 py-2 font-medium">${k.name}</td>
-        <td class="px-4 py-2">${k.provider || '—'}</td>
-        <td class="px-4 py-2 text-gray-500">${k.remark || '—'}</td>
-        <td class="px-4 py-2 font-mono text-xs text-gray-500">${k.key_preview || '—'}</td>
-        <td class="px-4 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800">${k.is_active !== false ? '启用' : '禁用'}</span></td>
-        <td class="px-4 py-2 text-right">
-          <button onclick="editPKey('${k.id}')" class="text-blue-600 hover:underline text-xs mr-2">编辑</button>
-          <button onclick="resetPKey('${k.id}', '${k.name}')" class="text-orange-600 hover:underline text-xs mr-2">重置</button>
-          <button onclick="deletePKey('${k.id}', '${k.name}')" class="text-red-600 hover:underline text-xs">删除</button>
+      const isActive = k.is_active !== false;
+      return `<tr>
+        <td class="font-medium" style="color: var(--text-primary);">${k.name}</td>
+        <td>${k.provider || '—'}</td>
+        <td style="color: var(--text-muted);">${k.remark || '—'}</td>
+        <td class="font-mono text-xs" style="color: var(--text-muted);">${k.key_preview || '—'}</td>
+        <td>${isActive ? '<span class="gf-tag gf-tag-green">启用</span>' : '<span class="gf-tag gf-tag-gray">禁用</span>'}</td>
+        <td class="text-right">
+          <button onclick="editPKey('${k.id}')" class="text-xs mr-2" style="color: var(--accent-light); background: none; border: none; cursor: pointer;">编辑</button>
+          <button onclick="resetPKey('${k.id}', '${k.name}')" class="text-xs mr-2" style="color: var(--warning); background: none; border: none; cursor: pointer;">重置</button>
+          <button onclick="deletePKey('${k.id}', '${k.name}')" class="text-xs" style="color: var(--danger); background: none; border: none; cursor: pointer;">删除</button>
         </td>
       </tr>`;
     }).join('');

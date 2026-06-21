@@ -6,73 +6,57 @@
 {% block content %}
 <div class="max-w-4xl space-y-6">
   <!-- Backup Settings -->
-  <div class="bg-white rounded-lg border border-gray-200" id="settings-card">
-    <div class="px-4 py-3 border-b border-gray-100">
-      <h3 class="text-sm font-semibold text-gray-700">备份设置</h3>
-    </div>
-    <div class="p-4">
+  <div class="gf-card" id="settings-card">
+    <div class="gf-card-header">备份设置</div>
+    <div class="gf-card-body">
       <form id="settings-form" class="space-y-4 max-w-xl">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">备份目录</label>
-          <input type="text" name="backup_dir" id="cfg-backup-dir"
-                 placeholder="如 /var/backups/gateflow"
-                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">备份目录</label>
+          <input type="text" name="backup_dir" id="cfg-backup-dir" placeholder="如 /var/backups/gateflow">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">pg_dump 路径</label>
-          <input type="text" name="pg_dump_path" id="cfg-pg-dump-path"
-                 placeholder="如 C:\Program Files\PostgreSQL\16\bin\pg_dump.exe"
-                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <p class="text-xs text-gray-500 mt-1">PostgreSQL 客户端工具 pg_dump 的绝对路径</p>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">pg_dump 路径</label>
+          <input type="text" name="pg_dump_path" id="cfg-pg-dump-path" placeholder="如 C:\Program Files\PostgreSQL\16\bin\pg_dump.exe">
+          <p class="text-xs mt-1" style="color: var(--text-muted);">PostgreSQL 客户端工具 pg_dump 的绝对路径</p>
         </div>
         <div class="flex items-center gap-2">
-          <input type="checkbox" name="backup_include_audit_logs" id="cfg-include-audit" class="rounded">
-          <label for="cfg-include-audit" class="text-sm text-gray-700">同时备份 LLM 调用日志（可能很大）</label>
+          <input type="checkbox" name="backup_include_audit_logs" id="cfg-include-audit">
+          <label for="cfg-include-audit" class="text-sm" style="color: var(--text-secondary);">同时备份 LLM 调用日志（可能很大）</label>
         </div>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
-          保存设置
-        </button>
+        <button type="submit" class="btn-primary">保存设置</button>
       </form>
     </div>
   </div>
 
   <!-- Run Backup -->
-  <div class="bg-white rounded-lg border border-gray-200">
-    <div class="px-4 py-3 border-b border-gray-100">
-      <h3 class="text-sm font-semibold text-gray-700">立即备份</h3>
-    </div>
-    <div class="p-4 space-y-4">
+  <div class="gf-card">
+    <div class="gf-card-header">立即备份</div>
+    <div class="gf-card-body space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">备份备注（可选）</label>
-        <textarea id="backup-note" rows="1" maxlength="200" placeholder="如：升级前全量备份"
-                  class="w-full max-w-xl border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">备份备注（可选）</label>
+        <textarea id="backup-note" rows="1" maxlength="200" placeholder="如：升级前全量备份" class="max-w-xl"></textarea>
       </div>
-      <button id="btn-run-backup" onclick="runBackup()"
-              class="bg-blue-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-700">
-        立即备份
-      </button>
+      <button id="btn-run-backup" onclick="runBackup()" class="btn-primary">立即备份</button>
       <div id="backup-alert" class="hidden"></div>
       <div id="backup-result" class="hidden grid grid-cols-4 gap-4"></div>
     </div>
   </div>
 
   <!-- History -->
-  <div class="bg-white rounded-lg border border-gray-200">
-    <div class="px-4 py-3 border-b border-gray-100">
-      <h3 class="text-sm font-semibold text-gray-700">历史备份</h3>
-    </div>
+  <div class="gf-card">
+    <div class="gf-card-header">历史备份</div>
     <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50 text-gray-500">
+      <table class="gf-table">
+        <thead>
           <tr>
-            <th class="text-left px-4 py-2 font-medium">文件名</th>
-            <th class="text-left px-4 py-2 font-medium">备注</th>
-            <th class="text-right px-4 py-2 font-medium">大小</th>
-            <th class="text-left px-4 py-2 font-medium">备份时间</th>
+            <th>文件名</th>
+            <th>备注</th>
+            <th class="text-right">大小</th>
+            <th>备份时间</th>
           </tr>
         </thead>
         <tbody id="history-body">
-          <tr><td colspan="4" class="text-center py-8 text-gray-400">加载中...</td></tr>
+          <tr><td colspan="4" class="text-center py-8" style="color: var(--text-muted);">加载中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -92,7 +76,6 @@ async function apiFetch(path, opts = {}) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    // 处理 Pydantic 422 数组错误
     if (Array.isArray(data.detail)) {
       const msg = data.detail.map(e => translateError(e.msg, FIELD_LABELS[e.loc?.[e.loc.length - 1]] || e.loc?.[e.loc.length - 1] || '未知字段')).join('；');
       throw new Error(msg);
@@ -102,7 +85,6 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-// Load config
 async function loadConfig() {
   try {
     const cfg = await apiFetch('/config');
@@ -112,7 +94,6 @@ async function loadConfig() {
   } catch {}
 }
 
-// Save config
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
@@ -128,7 +109,6 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
   } catch (e) { showToast(e.message, 'error'); }
 });
 
-// Run backup
 async function runBackup() {
   const btn = document.getElementById('btn-run-backup');
   const alertEl = document.getElementById('backup-alert');
@@ -145,35 +125,34 @@ async function runBackup() {
     document.getElementById('backup-note').value = '';
     resultEl.className = 'grid grid-cols-4 gap-4';
     resultEl.innerHTML = `
-      <div><div class="text-xs text-gray-500">文件</div><div class="font-semibold">${r.filename}</div></div>
-      <div><div class="text-xs text-gray-500">大小</div><div class="font-semibold">${formatBytes(r.size_bytes)}</div></div>
-      <div><div class="text-xs text-gray-500">耗时</div><div class="font-semibold">${formatDuration(r.duration_ms)}</div></div>
-      <div><div class="text-xs text-gray-500">表数量</div><div class="font-semibold">${r.tables_dumped}${r.excluded_audit_logs ? ' <span class="text-xs text-gray-400">(已排除audit_logs)</span>' : ''}</div></div>`;
+      <div><div class="text-xs" style="color: var(--text-muted);">文件</div><div class="font-semibold">${r.filename}</div></div>
+      <div><div class="text-xs" style="color: var(--text-muted);">大小</div><div class="font-semibold">${formatBytes(r.size_bytes)}</div></div>
+      <div><div class="text-xs" style="color: var(--text-muted);">耗时</div><div class="font-semibold">${formatDuration(r.duration_ms)}</div></div>
+      <div><div class="text-xs" style="color: var(--text-muted);">表数量</div><div class="font-semibold">${r.tables_dumped}${r.excluded_audit_logs ? ' <span class="text-xs" style="color: var(--text-muted);">(已排除audit_logs)</span>' : ''}</div></div>`;
     showToast('备份完成: ' + r.filename);
     loadHistory();
   } catch (e) {
-    alertEl.className = 'bg-red-50 text-red-700 text-sm rounded p-3 border border-red-200';
+    alertEl.className = 'gf-alert gf-alert-error';
     alertEl.textContent = e.message;
   } finally {
     btn.disabled = false; btn.textContent = '立即备份';
   }
 }
 
-// Load history
 async function loadHistory() {
   try {
     const files = await apiFetch('/history');
     const tbody = document.getElementById('history-body');
     if (!files.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-400">暂无备份</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8" style="color: var(--text-muted);">暂无备份</td></tr>';
       return;
     }
     tbody.innerHTML = files.map(f => `
-      <tr class="border-t border-gray-100 hover:bg-gray-50">
-        <td class="px-4 py-2">${f.filename}</td>
-        <td class="px-4 py-2 text-gray-500">${f.note || '<span class="text-gray-300">—</span>'}</td>
-        <td class="px-4 py-2 text-right">${formatBytes(f.size_bytes)}</td>
-        <td class="px-4 py-2">${formatDateTime(f.mtime)}</td>
+      <tr>
+        <td>${f.filename}</td>
+        <td style="color: var(--text-muted);">${f.note || '—'}</td>
+        <td class="text-right">${formatBytes(f.size_bytes)}</td>
+        <td>${formatDateTime(f.mtime)}</td>
       </tr>`).join('');
   } catch {}
 }

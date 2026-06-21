@@ -205,6 +205,7 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .stat-card .stat-suffix {
   font-size: 14px;
@@ -305,6 +306,9 @@ body {
 }
 .gf-table tbody tr:hover td {
   color: var(--text-primary);
+}
+.gf-table .text-right {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Tags / Badges ─────────────────────────────── */
@@ -573,6 +577,21 @@ dialog .gf-card-header {
   text-underline-offset: 2px;
 }
 
+/* ── Tabs (dimension/segment) ──────────────────── */
+.dim-tab {
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.dim-tab:hover {
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.03);
+}
+.dim-tab.active {
+  color: #fff;
+  background: var(--accent);
+}
+
 /* ── Utility ───────────────────────────────────── */
 .font-mono { font-family: var(--font-mono); }
 .text-muted { color: var(--text-muted); }
@@ -592,76 +611,14 @@ dialog .gf-card-header {
   letter-spacing: 0.02em;
 }
 
-/* ── Dark overrides for Tailwind utility conflicts ── */
-.text-gray-900 { color: var(--text-primary) !important; }
-.text-gray-800 { color: var(--text-primary) !important; }
-.text-gray-700 { color: var(--text-primary) !important; }
-.text-gray-600 { color: var(--text-secondary) !important; }
-.text-gray-500 { color: var(--text-secondary) !important; }
-.text-gray-400 { color: var(--text-muted) !important; }
-.text-gray-300 { color: var(--text-muted) !important; }
-.bg-gray-50 { background: rgba(255, 255, 255, 0.02) !important; }
-.bg-white { background: var(--bg-surface) !important; }
-.border-gray-100 { border-color: var(--border) !important; }
-.border-gray-200 { border-color: var(--border) !important; }
-.border-gray-300 { border-color: var(--border-light) !important; }
-.divide-gray-100 > * + * { border-color: var(--border) !important; }
-.hover\:bg-gray-50:hover { background: rgba(255, 255, 255, 0.04) !important; }
-.hover\:bg-gray-100:hover { background: rgba(255, 255, 255, 0.06) !important; }
-.hover\:bg-gray-800:hover { background: rgba(255, 255, 255, 0.08) !important; }
-.hover\:text-gray-200:hover { color: var(--text-primary) !important; }
-.hover\:text-gray-600:hover { color: var(--text-primary) !important; }
-.hover\:text-gray-700:hover { color: var(--text-primary) !important; }
-.hover\:text-red-400:hover { color: #f87171 !important; }
+/* ── Minimal Tailwind dark overrides (kept for edge cases) ── */
 
-/* Status badge overrides for dark theme */
-.bg-green-100 { background: var(--success-subtle) !important; }
-.text-green-800 { color: var(--success) !important; }
-.bg-red-100 { background: var(--danger-subtle) !important; }
-.text-red-800 { color: var(--danger) !important; }
-.bg-yellow-100 { background: var(--warning-subtle) !important; }
-.text-yellow-800 { color: var(--warning) !important; }
-.bg-blue-100 { background: var(--accent-subtle) !important; }
-.text-blue-800 { color: var(--accent-light) !important; }
-.bg-orange-100 { background: var(--warning-subtle) !important; }
-.text-orange-800 { color: var(--warning) !important; }
-
-/* Tab active state */
-.text-blue-600 { color: var(--accent-light) !important; }
-
-/* Focus ring override */
+/* Focus ring — still used by form inputs */
 .focus\:ring-blue-500:focus { box-shadow: 0 0 0 3px var(--accent-glow) !important; }
 .focus\:border-blue-500:focus { border-color: var(--accent) !important; }
 
-/* Error field override */
+/* Error field — still used by JS form validation */
 .border-red-500 { border-color: var(--danger) !important; }
-
-/* Card container pattern: bg-white rounded-lg border border-gray-200 */
-/* Already handled by .bg-white and .border-gray-200 overrides above */
-
-/* Alert overrides for dark theme */
-.bg-red-50 { background: var(--danger-subtle) !important; }
-.text-red-700 { color: var(--danger) !important; }
-.border-red-200 { border-color: rgba(248, 113, 113, 0.2) !important; }
-.bg-green-50 { background: var(--success-subtle) !important; }
-.text-green-700 { color: var(--success) !important; }
-.border-green-200 { border-color: rgba(52, 211, 153, 0.2) !important; }
-.bg-blue-50 { background: var(--info-subtle) !important; }
-.text-blue-700 { color: var(--info) !important; }
-.border-blue-200 { border-color: rgba(96, 165, 250, 0.2) !important; }
-
-/* Button color overrides */
-.bg-blue-600 { background: linear-gradient(135deg, var(--accent), var(--accent-dark)) !important; }
-.hover\:bg-blue-700:hover { background: linear-gradient(135deg, var(--accent-light), var(--accent)) !important; }
-.bg-red-600 { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }
-.hover\:bg-red-700:hover { background: linear-gradient(135deg, #f87171, #ef4444) !important; }
-
-/* Tab border overrides */
-.border-blue-600 { border-color: var(--accent) !important; }
-.border-transparent { border-color: transparent !important; }
-
-/* Disabled state */
-.disabled\:opacity-50:disabled { opacity: 0.5; }
 
 /* Scrollbar for dark theme */
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }

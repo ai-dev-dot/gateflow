@@ -6,54 +6,56 @@
 {% block content %}
 <div class="space-y-4">
   <!-- Filters -->
-  <div class="bg-white rounded-lg border border-gray-200 p-4">
-    <form id="filter-form" class="flex flex-wrap items-end gap-3">
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">模型</label>
-        <select id="f-model" class="border border-gray-300 rounded px-2 py-1.5 text-sm">
-          <option value="">全部</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">开始日期</label>
-        <input type="date" id="f-from" class="border border-gray-300 rounded px-2 py-1.5 text-sm">
-      </div>
-      <div>
-        <label class="block text-xs text-gray-500 mb-1">结束日期</label>
-        <input type="date" id="f-to" class="border border-gray-300 rounded px-2 py-1.5 text-sm">
-      </div>
-      <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">筛选</button>
-      <button type="button" onclick="resetFilters()" class="text-gray-500 px-3 py-1.5 text-sm hover:text-gray-700">重置</button>
-    </form>
+  <div class="gf-card">
+    <div class="gf-card-body">
+      <form id="filter-form" class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--text-muted);">模型</label>
+          <select id="f-model">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--text-muted);">开始日期</label>
+          <input type="date" id="f-from">
+        </div>
+        <div>
+          <label class="block text-xs mb-1" style="color: var(--text-muted);">结束日期</label>
+          <input type="date" id="f-to">
+        </div>
+        <button type="submit" class="btn-primary">筛选</button>
+        <button type="button" onclick="resetFilters()" class="btn-ghost">重置</button>
+      </form>
+    </div>
   </div>
 
   <!-- Table -->
-  <div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 text-gray-500">
+  <div class="gf-card overflow-x-auto">
+    <table class="gf-table">
+      <thead>
         <tr>
-          <th class="text-left px-4 py-2 font-medium">时间</th>
-          <th class="text-left px-4 py-2 font-medium">用户</th>
-          <th class="text-left px-4 py-2 font-medium">模型</th>
-          <th class="text-left px-4 py-2 font-medium">状态</th>
-          <th class="text-right px-4 py-2 font-medium">请求 Tokens</th>
-          <th class="text-right px-4 py-2 font-medium">响应 Tokens</th>
-          <th class="text-right px-4 py-2 font-medium">延迟</th>
-          <th class="text-left px-4 py-2 font-medium">HTTP</th>
+          <th>时间</th>
+          <th>用户</th>
+          <th>模型</th>
+          <th>状态</th>
+          <th class="text-right">请求 Tokens</th>
+          <th class="text-right">响应 Tokens</th>
+          <th class="text-right">延迟</th>
+          <th>HTTP</th>
         </tr>
       </thead>
       <tbody id="audit-body">
-        <tr><td colspan="8" class="text-center py-8 text-gray-400">加载中...</td></tr>
+        <tr><td colspan="8" class="text-center py-8" style="color: var(--text-muted);">加载中...</td></tr>
       </tbody>
     </table>
   </div>
 
   <!-- Pagination -->
-  <div id="pagination" class="flex justify-between items-center text-sm text-gray-500">
+  <div id="pagination" class="flex justify-between items-center text-sm" style="color: var(--text-muted);">
     <span id="page-info"></span>
     <div class="flex gap-2">
-      <button id="btn-prev" onclick="changePage(-1)" class="px-3 py-1 border rounded disabled:opacity-50" disabled>上一页</button>
-      <button id="btn-next" onclick="changePage(1)" class="px-3 py-1 border rounded disabled:opacity-50" disabled>下一页</button>
+      <button id="btn-prev" onclick="changePage(-1)" class="btn-ghost" disabled>上一页</button>
+      <button id="btn-next" onclick="changePage(1)" class="btn-ghost" disabled>下一页</button>
     </div>
   </div>
 </div>
@@ -82,20 +84,20 @@ async function loadLogs() {
 
     const tbody = document.getElementById('audit-body');
     if (!logs.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无记录</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8" style="color: var(--text-muted);">暂无记录</td></tr>';
     } else {
       tbody.innerHTML = logs.map(l => {
-        const statusColor = l.status === 'success' ? 'green' : 'red';
-        const httpColor = l.http_status && l.http_status < 400 ? 'green' : 'red';
-        return `<tr class="border-t border-gray-100 hover:bg-gray-50">
-          <td class="px-4 py-2">${formatDateTime(l.timestamp || l.created_at)}</td>
-          <td class="px-4 py-2">${l.username || l.user_id || '—'}</td>
-          <td class="px-4 py-2">${l.model_alias || l.model || '—'}</td>
-          <td class="px-4 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800">${l.status}</span></td>
-          <td class="px-4 py-2 text-right">${l.request_tokens ?? '—'}</td>
-          <td class="px-4 py-2 text-right">${l.response_tokens ?? '—'}</td>
-          <td class="px-4 py-2 text-right">${l.latency_ms != null ? l.latency_ms + ' ms' : '—'}</td>
-          <td class="px-4 py-2">${l.http_status ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${httpColor}-100 text-${httpColor}-800">${l.http_status}</span>` : '—'}</td>
+        const isSuccess = l.status === 'success';
+        const httpOk = l.http_status && l.http_status < 400;
+        return `<tr>
+          <td>${formatDateTime(l.timestamp || l.created_at)}</td>
+          <td>${l.username || l.user_id || '—'}</td>
+          <td>${l.model_alias || l.model || '—'}</td>
+          <td>${isSuccess ? '<span class="gf-tag gf-tag-green">success</span>' : '<span class="gf-tag gf-tag-red">' + (l.status || 'error') + '</span>'}</td>
+          <td class="text-right">${l.request_tokens ?? '—'}</td>
+          <td class="text-right">${l.response_tokens ?? '—'}</td>
+          <td class="text-right">${l.latency_ms != null ? l.latency_ms + ' ms' : '—'}</td>
+          <td>${l.http_status ? (httpOk ? '<span class="gf-tag gf-tag-green">' + l.http_status + '</span>' : '<span class="gf-tag gf-tag-red">' + l.http_status + '</span>') : '—'}</td>
         </tr>`;
       }).join('');
     }
@@ -128,7 +130,6 @@ document.getElementById('filter-form').addEventListener('submit', (e) => {
   loadLogs();
 });
 
-// Load model list for filter dropdown
 async function loadModels() {
   try {
     const res = await fetch('/api/gateway/models', { credentials: 'same-origin' });
