@@ -165,6 +165,8 @@ start.bat
 
 ---
 
+`start.sh` / `start.bat` 启动时会自动运行数据库迁移（`alembic upgrade head`），首次启动即建表，后续增量迁移也自动执行。
+
 启动后访问：`http://localhost:8000`
 
 - 未登录自动跳转到登录页

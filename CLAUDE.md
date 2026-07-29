@@ -21,7 +21,7 @@ GateFlow（闸机）是企业 AI 网关 —— 所有大模型调用的统一入
 | passlib[bcrypt] + bcrypt | 1.7.4 / 4.0.1 | 密码哈希 |
 | cryptography | (最新) | Fernet 对称加密 + HMAC-SHA256 |
 | Jinja2 | 3.1.6 | HTML 模板引擎（管理页面） |
-| Alembic | 1.18.4 | 数据库迁移（尚未启用） |
+| Alembic | 1.18.4 | 数据库迁移（已启用，alembic/versions/） |
 
 **前端（CDN 引入，无构建链）：**
 - Tailwind CSS v4 — 样式
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000   # 启动开发服务器
 ```
 
-表结构由 SQLAlchemy `create_all` 自动创建，启动时自动 seed 管理员账号和 AgentType 默认值。
+表结构由 **Alembic** 管理：`start.bat` / `start.sh` 启动时自动跑 `alembic upgrade head`（首次建表 + 增量迁移）；启动时自动 seed 管理员账号和 AgentType 默认值。手动迁移：`python -m alembic upgrade head`；改 schema 后生成迁移：`python -m alembic revision --autogenerate -m "描述"`（生成后需人工 review 产物）。
 
 ```bash
 python -m pytest tests/ -v     # 运行所有测试
@@ -136,4 +136,4 @@ D:\APP\GateFlow\
 - **API Key 创建**：`POST /api/api-keys` 返回完整明文（只此一次）；`GET /api/api-keys` 只返 `key_prefix`
 - **审计日志 body**：`GET /api/audit/logs` 永远不含 body；`?include_body=true` 仅 admin 可用
 - **CORS**：`ALLOWED_ORIGINS` 环境变量控制
-- **启动脚本**：`start.bat` 只启动 uvicorn（单进程单端口）
+- **启动脚本**：`start.bat` / `start.sh` 先跑 `alembic upgrade head` 再启动 uvicorn（单进程单端口）

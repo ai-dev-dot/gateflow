@@ -23,7 +23,7 @@ echo   ^✓ 依赖装完
 echo.
 echo 安装完成。下一步：
 echo   1. 确认 .env 已配置（DATABASE_URL 等）
-echo   2. 双击 start.bat 启动服务
+echo   2. 双击 start.bat 启动服务（首次启动自动建表/迁移）
 exit /b 0
 
 :error

@@ -16,6 +16,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "=== 启动 GateFlow (port 8000) ==="
+echo "运行数据库迁移 (alembic upgrade head)..."
+python -m alembic upgrade head
 python -m uvicorn app.main:app --reload --port 8000 &
 BACKEND_PID=$!
 

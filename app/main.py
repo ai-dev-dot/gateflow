@@ -5,10 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
-from app.database import async_session, engine
-from app.models import Base
+from app.database import async_session
 from app.models.agent_type import AgentType
-from app.models.system_config import ensure_columns as ensure_system_config_columns
 from app.routers.agent_types import router as agent_types_router
 from app.routers.anthropic_forward import router as anthropic_forward_router
 from app.routers.api_keys import router as api_keys_router
@@ -18,10 +16,10 @@ from app.routers.backup import router as backup_router
 from app.routers.chat import router as chat_router
 from app.routers.gateway_forward import router as gateway_forward_router
 from app.routers.model_configs import router as model_configs_router
+from app.routers.pages import router as pages_router
 from app.routers.provider_keys import router as provider_keys_router
 from app.routers.usage import router as usage_router
 from app.routers.users import router as users_router
-from app.routers.pages import router as pages_router
 from app.services.auth_service import AuthService
 from app.utils.crypto import verify_fernet_works
 from app.utils.hashing import verify_hmac_works
@@ -38,13 +36,9 @@ async def lifespan(app: FastAPI):
     verify_fernet_works()
     verify_hmac_works()
 
-    # Create tables on startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # Idempotent column additions for tables that already exist.
-    # P2-5 will replace this with Alembic; until then, ALTER TABLE here.
-    await ensure_system_config_columns(engine)
+    # Schema is managed by Alembic -- run `alembic upgrade head` before
+    # starting the app (start.bat / start.sh do this automatically).
+    # Startup no longer creates tables or ALTERs columns.
 
     # Initialize admin user
     async with async_session() as db:

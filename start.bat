@@ -14,4 +14,12 @@ timeout /t 2 /nobreak >nul 2>&1
 
 echo Starting GateFlow...
 cd /d D:\APP\GateFlow
+
+echo Running database migrations (alembic upgrade head)...
+python -m alembic upgrade head
+if errorlevel 1 (
+    echo [ERROR] Migration failed. Fix the issue above before starting.
+    exit /b 1
+)
+
 python -m uvicorn app.main:app --reload --port 8000
