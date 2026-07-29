@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.config import get_settings
+from app.utils.datetime_utils import utcnow
 
 settings = get_settings()
 
@@ -20,7 +21,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(days=settings.JWT_EXPIRE_DAYS))
+    expire = utcnow() + (expires_delta or timedelta(days=settings.JWT_EXPIRE_DAYS))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm="HS256")
 

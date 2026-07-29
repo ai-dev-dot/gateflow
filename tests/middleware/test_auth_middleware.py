@@ -9,7 +9,7 @@ Covers:
 - Inactive user (403)
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -18,6 +18,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.middleware.auth_middleware import _resolve_credentials
 from app.models.agent_type import AgentType
 from app.models.api_key import APIKey
+from app.utils.datetime_utils import utcnow
 from app.utils.hashing import hash_api_key
 from app.utils.security import create_access_token
 
@@ -98,7 +99,7 @@ async def test_resolve_credentials_api_key_expired_raises_401(db_session, test_u
             name="expired",
             key_hash=key_hash,
             key_prefix=prefix,
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=utcnow() - timedelta(days=1),
             is_active=True,
         )
     )

@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.provider_key import ProviderAPIKey
+from app.utils.datetime_utils import utcnow
 
 
 class ProviderKeyService:
@@ -23,7 +24,7 @@ class ProviderKeyService:
         - cool_down_until is NULL or in the past
         - Order by: consecutive_errors ASC, last_used_at ASC (NULL first)
         """
-        now = datetime.utcnow()
+        now = utcnow()
         result = await self.db.execute(
             select(ProviderAPIKey)
             .where(
@@ -48,7 +49,7 @@ class ProviderKeyService:
         Update key stats after a successful request.
         Uses atomic UPDATE (not read-then-write) to avoid race conditions.
         """
-        now = datetime.utcnow()
+        now = utcnow()
         await self.db.execute(
             update(ProviderAPIKey)
             .where(ProviderAPIKey.id == key_id)
@@ -70,7 +71,7 @@ class ProviderKeyService:
         - Other errors: just increment consecutive_errors
         Uses atomic UPDATE to avoid race conditions.
         """
-        now = datetime.utcnow()
+        now = utcnow()
         if status_code == 429:
             cool_down = now + timedelta(seconds=60)
             await self.db.execute(

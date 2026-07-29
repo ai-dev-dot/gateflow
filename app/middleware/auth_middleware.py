@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from datetime import datetime
 from uuid import UUID
 
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
@@ -12,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from app.config import get_settings
 from app.database import get_db
 from app.models import APIKey, User
+from app.utils.datetime_utils import utcnow
 from app.utils.hashing import hash_api_key
 from app.utils.security import decode_access_token
 
@@ -53,10 +53,10 @@ async def _resolve_credentials(
         if not api_key:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的 API Key")
 
-        if api_key.expires_at and api_key.expires_at < datetime.utcnow():
+        if api_key.expires_at and api_key.expires_at < utcnow():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API Key 已过期")
 
-        api_key.last_used_at = datetime.utcnow()
+        api_key.last_used_at = utcnow()
         await db.commit()
 
         api_key_id = api_key.id

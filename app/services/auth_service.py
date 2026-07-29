@@ -1,11 +1,10 @@
-from datetime import datetime
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.models.user import Role, User
+from app.utils.datetime_utils import utcnow
 from app.utils.security import create_access_token, get_password_hash, verify_password
 
 settings = get_settings()
@@ -29,7 +28,7 @@ class AuthService:
         if not user.is_active:
             return None
 
-        user.last_login = datetime.utcnow()
+        user.last_login = utcnow()
         await self.db.commit()
         await self.db.refresh(user)
         return user

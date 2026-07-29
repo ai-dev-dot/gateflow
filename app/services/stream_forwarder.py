@@ -25,7 +25,6 @@ Callers customize via optional hooks:
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from datetime import datetime
 from uuid import UUID
 
 import httpx
@@ -36,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit import AuditLog
 from app.services.provider_adapters.base import BaseAdapter, StreamEvent
 from app.services.provider_key_service import ProviderKeyService
+from app.utils.datetime_utils import utcnow
 from app.utils.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
@@ -336,7 +336,7 @@ class StreamForwarder:
                     audit_log.response_tokens = response_tokens
                     audit_log.total_tokens = request_tokens + response_tokens
                     audit_log.latency_ms = latency_ms
-                    audit_log.completed_at = datetime.utcnow()
+                    audit_log.completed_at = utcnow()
 
                 # Caller hook (e.g. save AI message + conversation title)
                 if on_complete is not None:

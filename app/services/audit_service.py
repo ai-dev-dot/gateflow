@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.models.audit import AuditLog
 from app.utils.crypto import decrypt_key, encrypt_key
+from app.utils.datetime_utils import utcnow
 
 
 class AuditService:
@@ -130,7 +131,7 @@ class AuditService:
         log.response_tokens = response_tokens
         log.total_tokens = request_tokens + response_tokens
         log.latency_ms = latency_ms
-        log.completed_at = datetime.utcnow()
+        log.completed_at = utcnow()
         log.status = "completed" if status_code == 200 else "failed"
 
     # ---------- 读取路径（管理后台用）----------

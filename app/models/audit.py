@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -15,6 +14,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.models.base import Base
+from app.utils.datetime_utils import utcnow
 
 
 class AuditLog(Base):
@@ -22,7 +22,7 @@ class AuditLog(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(String(20), default="pending", nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=utcnow, nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     username = Column(String(50), nullable=False)
     department = Column(String(100), nullable=True)
@@ -49,7 +49,7 @@ class AuditLog(Base):
     is_stream = Column(Boolean, default=False, nullable=False)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
