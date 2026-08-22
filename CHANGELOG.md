@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-22
+
 ### Added
 - **Admin 数据库备份页面**（`/backup`）：通过 `pg_dump` 异步导出数据库为 `.sql` 文件，配置（备份目录 + 是否包含 LLM 调用日志）存单行 `system_config` 表，admin 改完无需重启立刻生效。默认不备份 `audit_logs` 数据（仅保留 schema）。四端点：`GET/PUT /api/backup/config`、`POST /api/backup/run`、`GET /api/backup/history`
 - Anthropic 兼容协议支持（`POST /v1/messages`）+ Provider Adapter 架构
