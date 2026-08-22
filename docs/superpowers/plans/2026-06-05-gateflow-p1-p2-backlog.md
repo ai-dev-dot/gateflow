@@ -472,7 +472,7 @@ async with engine.begin() as conn:
 
 **位置**：`backend/app/services/stream_forwarder.py:254-279`
 **严重度**：P2
-**当前状态**：未开始
+**当前状态**：**DONE**（commit `a02d7ea`，2026-08-22）--`app/services/cleanup_service.py`：lifespan 后台任务启动延迟 5 分钟后每 24h 扫一次，把超过 1h 仍 pending 的记录标 failed 并在 `error_message` 写 stale 标注（复用 P1-8 字段）；单轮失败只记日志不中断循环
 
 **问题**：`_save_after_stream` 在 finally 块中跑。如果 finally 内部 commit 失败（如 DB 短暂中断、序列化冲突），audit log 永远是 `status='pending'`。**没有 cron / 定时任务清理僵尸 pending**。一个月后 DB 里会有 30k+ pending 记录，partial index `ix_audit_logs_status_pending` 会膨胀，get_summary 排除 pending 的过滤反而查到大量过期数据。
 
@@ -573,7 +573,7 @@ async with engine.begin() as conn:
 | P2-3 | DONE | 032227b | 抽 _build_summary_query 静态方法，+7 tests 覆盖 4 维度 |
 | P2-4 | DONE | f3da9fd | 抽 app/utils/tokens.estimate_tokens，+9 tests；附带修 None/int 被 str() 误估 1 token 的 bug |
 | P2-5 | DONE | 031f40d | 启用 Alembic，移除 create_all/ensure_columns 临时方案；baseline 含 11 表 + partial index |
-| P2-6 | TODO | — | 僵尸 pending audit log 无定时清理 |
+| P2-6 | DONE | a02d7ea | cleanup_service 后台任务每 24h 扫描；>1h pending 标 failed + stale 标注（复用 P1-8 error_message） |
 | P2-7 | DONE | e081195 | 抽 app/utils/datetime_utils.utcnow()，替换全部调用点 |
 | P2-8 | 部分 | — | request_id 已做（P0-4 顺带）；Prometheus /metrics + 结构化日志待做 |
 
