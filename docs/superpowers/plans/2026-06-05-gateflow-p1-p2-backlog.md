@@ -109,7 +109,7 @@ async def get_auth_context(...):
 
 **位置**：`backend/app/middleware/auth_middleware.py:42-43, 117-118`
 **严重度**：P1（高 QPS 下是真实瓶颈，但当前 0 用户）
-**当前状态**：未开始
+**当前状态**：**DONE**（commit `17d7dca`，2026-08-22）--采用推荐方案 A：热路径只往内存 set 记 key id，lifespan 后台任务每 30s 单条 `UPDATE ... WHERE id IN (...)` 批量落库；flush 失败保留 buffer 下轮重试；优雅关闭时最后冲一次 buffer
 
 **问题**：
 ```python
@@ -561,7 +561,7 @@ async with engine.begin() as conn:
 |------|------|--------|------|
 | P1-1 | DONE | 7c3b3dc | 抽 _resolve_credentials，+10 tests，顺带修 SQLite 下 JWT sub 隐式转换 bug |
 | P1-2 | DONE | 197042d | bridge_stream 80 行删掉，+transform_chunk/error_sse 钩子，+AnthropicBridgeTransformer，+save_after_stream 公共方法；+15 tests |
-| P1-3 | TODO | — | 认证热路径每次请求 UPDATE+commit，当前 0 用户不急 |
+| P1-3 | DONE | 17d7dca | 方案 A：内存 buffer + 30s 批量 flush；优雅关闭冲 buffer；+4 tests |
 | P1-4 | DONE | 4188d94 | get_messages 改 None/[] 契约，去掉 router 端 N+1 兜底 |
 | P1-5 | DONE | 290d7e2 | 抽 _get_capped_history，system 消息全保留 + 最近 50 user/assistant |
 | P1-6 | DONE | 63e66bd | 非流式 flush 代替 commit 让 LLM 失败回滚；流式 on_complete 失败时删 orphan |
