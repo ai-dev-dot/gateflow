@@ -291,7 +291,7 @@ truncated_body = request_body[: self.MAX_LOG_CONTENT_LENGTH]  # 看起来会截
 
 **位置**：`backend/app/services/gateway_service.py:163-167`
 **严重度**：P1
-**当前状态**：未开始
+**当前状态**：**DONE**（commit `86c6397`，2026-08-22）--走中期方案：`AuditLog.error_message` 字段（Text，截断 500 字符，Alembic 迁移 `a58c2f0bdc97`）。三条转发路径（非流式网关 / StreamForwarder 流式三错误分支 / Anthropic 非流式 bridge）的失败原因全部落库；API 与审计页暴露给 admin/user；该字段同时作为 P2-6 stale 标注的载体
 
 **问题**：
 ```python
@@ -566,7 +566,7 @@ async with engine.begin() as conn:
 | P1-5 | DONE | 290d7e2 | 抽 _get_capped_history，system 消息全保留 + 最近 50 user/assistant |
 | P1-6 | DONE | 63e66bd | 非流式 flush 代替 commit 让 LLM 失败回滚；流式 on_complete 失败时删 orphan |
 | P1-7 | DONE | 88d8e70 | 删 MAX_LOG_CONTENT_LENGTH 100KB 死代码，body 透传 |
-| P1-8 | TODO | — | 异常分支 error_message 未写入 audit log（model 无该字段） |
+| P1-8 | DONE | 86c6397 | error_message 字段 + Alembic 迁移；三条转发路径失败原因全部落库；API/审计页暴露；+6 tests |
 | P1-9 | 部分 | 031f40d | partial index 已正确落入 Alembic baseline 迁移（P2-5 顺带）；SQLite 测试盲区仍在 |
 | P2-1 | 部分 | — | 93 -> 161 tests（17 文件），CI 已跑 pytest；router HTTP 覆盖仍不全 |
 | P2-2 | DONE | 03c2fbb | gateway.py -> model_configs.py，路径前缀不变 |
