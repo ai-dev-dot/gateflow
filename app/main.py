@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
@@ -7,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import async_session
+from app.middleware.auth_middleware import flush_last_used_buffer, last_used_flush_loop
 from app.models.agent_type import AgentType
 from app.routers.agent_types import router as agent_types_router
 from app.routers.anthropic_forward import router as anthropic_forward_router
@@ -28,6 +30,8 @@ from app.utils.hashing import verify_hmac_works
 from app.utils.http_client import close_http_client
 from app.utils.request_id import RequestIDMiddleware
 from app.utils.startup_checks import verify_jwt_secret_not_placeholder
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -61,12 +65,23 @@ async def lifespan(app: FastAPI):
     # (finally-block saves that never landed due to crash / DB outage).
     cleanup_task = asyncio.create_task(stale_pending_cleanup_loop())
 
+    # P1-3: batch-flush api_key.last_used_at off the auth hot path.
+    last_used_task = asyncio.create_task(last_used_flush_loop())
+
     yield
 
     # Cleanup on shutdown
     cleanup_task.cancel()
     with suppress(asyncio.CancelledError):
         await cleanup_task
+    last_used_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await last_used_task
+    # Graceful shutdown: drain whatever the loop hasn't flushed yet.
+    try:
+        await flush_last_used_buffer()
+    except Exception:
+        logger.warning("final last_used_at flush failed on shutdown", exc_info=True)
     await close_http_client()
 
 

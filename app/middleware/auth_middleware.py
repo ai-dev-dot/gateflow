@@ -1,10 +1,12 @@
+import asyncio
+import logging
 from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +16,8 @@ from app.models import APIKey, User
 from app.utils.datetime_utils import utcnow
 from app.utils.hashing import hash_api_key
 from app.utils.security import decode_access_token
+
+logger = logging.getLogger(__name__)
 
 security = HTTPBearer(auto_error=False)
 COOKIE_NAME = "gf_session"
@@ -56,8 +60,9 @@ async def _resolve_credentials(
         if api_key.expires_at and api_key.expires_at < utcnow():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API Key 已过期")
 
-        api_key.last_used_at = utcnow()
-        await db.commit()
+        # P1-3: 只记内存不写库（热路径原为 UPDATE + commit，QPS 高时是
+        # DB 锁竞争瓶颈）。lifespan 后台任务每 30s 批量 flush。
+        mark_api_key_used(api_key.id)
 
         api_key_id = api_key.id
         if hasattr(api_key, "agent_type") and api_key.agent_type:
@@ -168,3 +173,62 @@ async def get_auth_context(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="未提供认证信息")
     user, api_key_id, agent_type = await _resolve_credentials(credentials, db)
     return AuthContext(user=user, api_key_id=api_key_id, agent_type=agent_type)
+
+
+# ---------- P1-3: last_used_at 批量落库 ----------
+#
+# 认证热路径原先对每个 API Key 请求执行 UPDATE + commit（DB 锁竞争 +
+# 写延迟，QPS 100+ 时是真实瓶颈）。改为：热路径只往内存 set 记 id，
+# lifespan 后台任务每 30s 批量 flush 一次（backlog P1-3 方案 A）。
+# 代价：进程崩溃丢最多 30s 的 last_used_at--该字段非合规关键数据，
+# 可接受。优雅关闭时 lifespan 会做最后一次 flush。
+
+_last_used_buffer: set[UUID] = set()
+
+FLUSH_INTERVAL_SECONDS = 30
+
+
+def mark_api_key_used(api_key_id: UUID) -> None:
+    """Record an API key usage in memory. No DB write on the hot path."""
+    _last_used_buffer.add(api_key_id)
+
+
+async def flush_last_used_buffer(session_factory=None) -> int:
+    """Batch-update ``last_used_at`` for all buffered key ids.
+
+    Returns the number of keys flushed (0 when the buffer is empty).
+    On failure the buffer keeps its contents so the next cycle retries.
+    """
+    if not _last_used_buffer:
+        return 0
+
+    if session_factory is None:
+        from app.database import async_session as session_factory
+
+    ids = set(_last_used_buffer)
+    async with session_factory() as db:
+        await db.execute(
+            update(APIKey).where(APIKey.id.in_(ids)).values(last_used_at=utcnow())
+        )
+        await db.commit()
+    # Only drain after a successful commit; a raised error above leaves
+    # the buffer intact for the next cycle.
+    _last_used_buffer.difference_update(ids)
+    return len(ids)
+
+
+async def last_used_flush_loop(interval_seconds: int = FLUSH_INTERVAL_SECONDS) -> None:
+    """Lifespan background task: flush the buffer every interval.
+
+    Flush errors are logged (inside flush via exc_info) and retried on the
+    next cycle -- losing a 30s window of last_used_at is acceptable, but
+    the loop itself must never die.
+    """
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            await flush_last_used_buffer()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("last_used_at flush cycle failed; will retry", exc_info=True)

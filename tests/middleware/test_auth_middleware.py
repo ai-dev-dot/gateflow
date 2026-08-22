@@ -180,3 +180,93 @@ async def test_resolve_credentials_inactive_user_raises_403(db_session, test_use
         await _resolve_credentials(_bearer(token), db_session)
     assert exc.value.status_code == 403
     assert "禁用" in exc.value.detail
+
+# ---------- P1-3: last_used_at off the hot path ----------
+
+
+@pytest.mark.asyncio
+async def test_auth_marks_buffer_not_db(db_session, test_user):
+    """API key auth records the usage in memory only - no immediate
+    UPDATE+commit on the hot path."""
+    from app.middleware import auth_middleware
+
+    auth_middleware._last_used_buffer.clear()
+    full = await _make_api_key(db_session, test_user)
+
+    user, api_key_id, _ = await _resolve_credentials(_bearer(full), db_session)
+
+    assert api_key_id in auth_middleware._last_used_buffer
+    # DB row was NOT touched by auth itself
+    key_row = await db_session.get(APIKey, api_key_id)
+    await db_session.refresh(key_row)
+    assert key_row.last_used_at is None
+
+    auth_middleware._last_used_buffer.clear()
+
+
+@pytest.mark.asyncio
+async def test_flush_updates_last_used_in_batch(db_session, test_user):
+    """flush_last_used_buffer batch-updates all buffered ids and drains."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.middleware import auth_middleware
+
+    auth_middleware._last_used_buffer.clear()
+    factory = async_sessionmaker(db_session.bind, expire_on_commit=False)
+
+    full1 = await _make_api_key(db_session, test_user)
+    full2 = await _make_api_key(db_session, test_user)
+    await _resolve_credentials(_bearer(full1), db_session)
+    await _resolve_credentials(_bearer(full2), db_session)
+    assert len(auth_middleware._last_used_buffer) == 2
+
+    count = await auth_middleware.flush_last_used_buffer(session_factory=factory)
+
+    assert count == 2
+    assert not auth_middleware._last_used_buffer
+
+    from sqlalchemy import select
+
+    result = await db_session.execute(select(APIKey))
+    for row in result.scalars():
+        assert row.last_used_at is not None
+
+    auth_middleware._last_used_buffer.clear()
+
+
+@pytest.mark.asyncio
+async def test_flush_empty_buffer_is_noop():
+    from app.middleware import auth_middleware
+
+    auth_middleware._last_used_buffer.clear()
+    count = await auth_middleware.flush_last_used_buffer(
+        session_factory=_failing_factory_should_not_be_called()
+    )
+    assert count == 0
+
+
+def _failing_factory_should_not_be_called():
+    def factory():
+        raise AssertionError("factory must not be called for an empty buffer")
+
+    return factory
+
+
+@pytest.mark.asyncio
+async def test_flush_failure_keeps_buffer_for_retry(db_session, test_user):
+    """A failed flush leaves the buffer intact so the next cycle retries."""
+    from app.middleware import auth_middleware
+
+    auth_middleware._last_used_buffer.clear()
+    full = await _make_api_key(db_session, test_user)
+    await _resolve_credentials(_bearer(full), db_session)
+    assert len(auth_middleware._last_used_buffer) == 1
+
+    def broken_factory():
+        raise RuntimeError("db down")
+
+    with pytest.raises(RuntimeError):
+        await auth_middleware.flush_last_used_buffer(session_factory=broken_factory)
+
+    assert len(auth_middleware._last_used_buffer) == 1
+    auth_middleware._last_used_buffer.clear()
