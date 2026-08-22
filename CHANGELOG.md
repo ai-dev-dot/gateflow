@@ -23,6 +23,7 @@
 - **每请求 UUID** 中间件（`utils/request_id.py`），跨日志关联，响应头回显 `X-Request-ID`
 - **启动 fail-fast 检查**（`utils/startup_checks.py`）：JWT_SECRET_KEY 占位符 / 长度校验
 - **错误响应安全工具**（`utils/errors.py`）：固定文案 + request_id，不泄露内部异常
+- **P2-6 僵尸 pending 审计日志定时清理**：lifespan 后台任务每 24h 扫描（启动后延迟 5 分钟首轮），把超过 1h 仍 pending 的审计日志标为 failed 并在 `error_message` 标注 stale（复用 P1-8 字段），防止 `ix_audit_logs_status_pending` partial index 膨胀；单轮失败仅记日志不中断循环；进程退出时任务随之取消
 
 ### Changed
 - **P2-5 启用 Alembic 迁移**：schema 演进由 Alembic 接管，移除 lifespan 里的 `Base.metadata.create_all` 和 `system_config.ensure_columns`（手动 ALTER TABLE）临时方案。`start.bat`/`start.sh` 启动时自动 `alembic upgrade head`；baseline 迁移含全部 11 张表 + partial index（`ix_audit_logs_status_pending` 的 `postgresql_where` 正确落入迁移）。改 schema 流程：`alembic revision --autogenerate -m "..."` → review → `alembic upgrade head`

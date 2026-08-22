@@ -1,4 +1,5 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,7 @@ from app.routers.provider_keys import router as provider_keys_router
 from app.routers.usage import router as usage_router
 from app.routers.users import router as users_router
 from app.services.auth_service import AuthService
+from app.services.cleanup_service import stale_pending_cleanup_loop
 from app.utils.crypto import verify_fernet_works
 from app.utils.hashing import verify_hmac_works
 from app.utils.http_client import close_http_client
@@ -55,9 +57,16 @@ async def lifespan(app: FastAPI):
                 db.add(AgentType(name=name))
             await db.commit()
 
+    # P2-6: periodically mark zombie pending audit logs as failed
+    # (finally-block saves that never landed due to crash / DB outage).
+    cleanup_task = asyncio.create_task(stale_pending_cleanup_loop())
+
     yield
 
     # Cleanup on shutdown
+    cleanup_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await cleanup_task
     await close_http_client()
 
 
