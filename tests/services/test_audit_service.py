@@ -351,3 +351,116 @@ async def test_decrypt_request_body_round_trip(db_session, test_user, monkeypatc
     )
     await db_session.commit()
     assert service.decrypt_request_body(log.request_body) == body
+
+
+# ---------- PII 脱敏（spec B1/B7/B8，plan T2） ----------
+
+
+@pytest.mark.asyncio
+async def test_create_pending_log_redacts_when_enabled(db_session, test_user, monkeypatch):
+    """ENABLE_PII_REDACTION=true：preview 与 user_agent 落库前脱敏。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ENABLE_PII_REDACTION", True)
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="m",
+        provider="p",
+        path="/x",
+        request_body="reach a@b.com or 13800138000",
+        user_agent="cool-agent/1.0 dev@corp.com",
+        is_stream=False,
+    )
+    await db_session.commit()
+    assert log.request_body_preview == "reach [EMAIL] or [PHONE]"
+    assert log.user_agent == "cool-agent/1.0 [EMAIL]"
+
+
+@pytest.mark.asyncio
+async def test_create_pending_log_disabled_default_passthrough(db_session, test_user, monkeypatch):
+    """CRITICAL 回归：未开启（显式默认 false）时 preview/user_agent 与原实现一致。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ENABLE_PII_REDACTION", False)
+    service = AuditService(db_session)
+    body = "reach a@b.com or 13800138000"
+    ua = "Mozilla/5.0 (Windows NT 10.0)"
+    log = await service.create_pending_log(
+        user=test_user,
+        model="m",
+        provider="p",
+        path="/x",
+        request_body=body,
+        user_agent=ua,
+        is_stream=False,
+    )
+    await db_session.commit()
+    assert log.request_body_preview == body
+    assert log.user_agent == ua
+
+
+@pytest.mark.asyncio
+async def test_create_pending_log_redacts_encrypted_full_body(db_session, test_user, monkeypatch):
+    """ENABLE=true + FULL_BODY=true：解密后的 full body 也是掩码，无原文。"""
+    from app.config import get_settings
+
+    s = get_settings()
+    monkeypatch.setattr(s, "ENABLE_PII_REDACTION", True)
+    monkeypatch.setattr(s, "AUDIT_LOG_FULL_BODY", True)
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="m",
+        provider="p",
+        path="/x",
+        request_body="mail a@b.com",
+        is_stream=False,
+    )
+    await db_session.commit()
+    decrypted = service.decrypt_request_body(log.request_body)
+    assert "a@b.com" not in decrypted
+    assert "[EMAIL]" in decrypted
+
+
+@pytest.mark.asyncio
+async def test_create_pending_log_user_agent_none_ok(db_session, test_user, monkeypatch):
+    """ENABLE=true + user_agent=None（Chat 流式形态）：保持 None、不崩。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ENABLE_PII_REDACTION", True)
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="m",
+        provider="p",
+        path="/x",
+        request_body="plain",
+        user_agent=None,
+        is_stream=False,
+    )
+    await db_session.commit()
+    assert log.user_agent is None
+
+
+@pytest.mark.asyncio
+async def test_record_completion_redacts_error_message_when_enabled(
+    db_session, test_user, monkeypatch
+):
+    """ENABLE=true：record_completion 的 error_message 先截断再脱敏。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ENABLE_PII_REDACTION", True)
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="m",
+        provider="p",
+        path="/x",
+        request_body=None,
+        is_stream=False,
+    )
+    await db_session.commit()
+    await service.record_completion(log, status_code=500, error_message="contact a@b.com")
+    await db_session.commit()
+    assert log.error_message == "contact [EMAIL]"

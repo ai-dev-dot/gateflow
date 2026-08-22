@@ -41,6 +41,11 @@ AUDIT_DELETED = Counter(
     "Audit log rows deleted by the retention task (AUDIT_LOG_RETENTION_DAYS)",
 )
 
+PII_REDACT_FAILURES = Counter(
+    "gateflow_pii_redact_failure_total",
+    "PII redaction failures (fail-open: original text stored instead)",
+)
+
 
 def observe_audit_deletion(count: int) -> None:
     """Record rows deleted by the retention task."""
@@ -65,3 +70,8 @@ def observe_stale_cleanup(count: int) -> None:
     """Record rows marked stale by the P2-6 cleanup task (no latency, no model)."""
     if count:
         AUDIT_WRITES.labels(status="stale").inc(count)
+
+
+def observe_pii_redact_failure() -> None:
+    """Record one PII redaction failure (fail-open path, spec B8 / plan P6)."""
+    PII_REDACT_FAILURES.inc()

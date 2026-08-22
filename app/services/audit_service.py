@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.models.audit import AuditLog
+from app.services.redactor import maybe_redact
 from app.utils.crypto import decrypt_key, encrypt_key
 from app.utils.datetime_utils import utcnow
 from app.utils.metrics import observe_llm_call
@@ -62,6 +63,13 @@ class AuditService:
         to ~2KB and the internal ceiling was unreachable in practice.
         """
         settings = get_settings()
+
+        # PII 脱敏（spec B1/B7）：请求体与 User-Agent 落库前打码。开关在调用时读
+        # settings（lru_cached，零成本；禁止 import 时缓存——测试 monkeypatch 依赖，
+        # 见 plan P3）。fail-open：redact 异常时 maybe_redact 返回原文，审计不中断。
+        redact = settings.ENABLE_PII_REDACTION
+        request_body = maybe_redact(request_body, redact)
+        user_agent = maybe_redact(user_agent, redact)
 
         preview = None
         encrypted_body = None
@@ -135,9 +143,13 @@ class AuditService:
         log.latency_ms = latency_ms
         log.completed_at = utcnow()
         log.status = "completed" if status_code == 200 else "failed"
-        # 内部诊断信息（上游错误 body / 异常 repr），截断 500 字符。
-        # 仅落库供审计视图查看，永不回显给 LLM 客户端（P0-4）。
-        log.error_message = error_message[:500] if error_message else None
+        # 内部诊断信息（上游错误 body / 异常 repr），先截断 500 字符再打码（spec §4.1
+        # 定序）。仅落库供审计视图查看，永不回显给 LLM 客户端（P0-4）。
+        # fail-open：redact 异常时落原文，审计写入不中断（spec B8）。
+        log.error_message = maybe_redact(
+            error_message[:500] if error_message else None,
+            get_settings().ENABLE_PII_REDACTION,
+        )
 
         # P2-8: 业务指标（非流式路径的公共出口；流式在 _save_after_stream）
         observe_llm_call(

@@ -466,3 +466,32 @@ async def test_forward_with_error_sse_hook_uses_client_format(db_session, test_u
         body = "".join(c.decode("utf-8") if isinstance(c, bytes) else c for c in chunks)
 
     assert "CLIENT_FORMAT: Upstream returned 500" in body
+
+
+# ---------- PII 脱敏（spec B8，plan T3） ----------
+
+
+@pytest.mark.asyncio
+async def test_save_after_stream_redacts_error_message_when_enabled(
+    db_session, test_user, monkeypatch
+):
+    """ENABLE=true：_save_after_stream 的 error_message 先 [:500] 再脱敏。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "ENABLE_PII_REDACTION", True)
+    audit_log, pk = await _make_audit_and_key(db_session, test_user)
+    factory = _session_factory(db_session)
+    forwarder = StreamForwarder(db_session, OpenAIAdapter(), session_factory=factory)
+
+    await forwarder.save_after_stream(
+        audit_log_id=audit_log.id,
+        provider_key_id=pk.id,
+        status_code=502,
+        request_tokens=5,
+        error_message="rejected: contact a@b.com",
+    )
+
+    async with factory() as verify:
+        result = await verify.execute(select(AuditLog).where(AuditLog.id == audit_log.id))
+        log = result.scalar_one()
+        assert log.error_message == "rejected: contact [EMAIL]"

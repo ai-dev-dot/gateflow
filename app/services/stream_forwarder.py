@@ -32,9 +32,11 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.models.audit import AuditLog
 from app.services.provider_adapters.base import BaseAdapter, StreamEvent
 from app.services.provider_key_service import ProviderKeyService
+from app.services.redactor import maybe_redact
 from app.utils.datetime_utils import utcnow
 from app.utils.http_client import get_http_client
 from app.utils.metrics import observe_llm_call
@@ -346,7 +348,11 @@ class StreamForwarder:
                     audit_log.total_tokens = request_tokens + response_tokens
                     audit_log.latency_ms = latency_ms
                     audit_log.completed_at = utcnow()
-                    audit_log.error_message = error_message[:500] if error_message else None
+                    # PII 脱敏：先截断 500 再打码（spec §4.1 定序）；fail-open（B8）。
+                    audit_log.error_message = maybe_redact(
+                        error_message[:500] if error_message else None,
+                        get_settings().ENABLE_PII_REDACTION,
+                    )
 
                     # P2-8: 业务指标（流式/bridge 路径的公共出口）
                     observe_llm_call(
