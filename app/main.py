@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
     await close_http_client()
 
 
-app = FastAPI(title="闸机 GateFlow", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="闸机 GateFlow", version="0.3.0", lifespan=lifespan)
 
 # Request ID middleware must be added BEFORE CORS so every request has
 # an id available during CORS preflight handling too.
