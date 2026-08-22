@@ -25,8 +25,8 @@
 **P1 / P2 按优先级排序在本 backlog 跟踪。**
 
 > **2026-08-22 状态同步**（与 git log / 代码实际状态对齐：当日完成 P1-8 / P2-6 / P1-3）：
-> - 17 项中 **14 项 DONE、3 项部分完成、0 项待办**
-> - 剩余均为部分完成（长期工程项，按需另立任务）：**P1-9**（partial index 已落入 Alembic 迁移，剩 SQLite 测试盲区）、**P2-1**（93 -> 175 tests，CI 已跑 pytest，router HTTP 覆盖仍不全）、**P2-8**（request_id 已做，metrics/结构化日志待做）
+> - 17 项中 **15 项 DONE、2 项部分完成、0 项待办**
+> - 剩余均为部分完成（长期工程项，按需另立任务）：**P1-9**（partial index 已落入 Alembic 迁移，剩 SQLite 测试盲区）、**P2-1**（93 -> 183 tests，CI 已跑 pytest，router HTTP 覆盖仍不全）。P2-8 已于 2026-08-22 完成（`d01f735`，详见 `2026-08-22-p2-8-observability.md`）
 > - backlog 之外同期完成的功能（记录在 CHANGELOG）：admin 数据库备份（pg_dump）、暗色主题设计系统、表单 UX 优化、治理项（read-only 开源模式）
 > - 1 个 P2 已在 P0-4 修复时顺带完成（无 request_id 中间件）
 
@@ -520,7 +520,7 @@ async with engine.begin() as conn:
 
 **位置**：`backend/app/main.py` 整文件
 **严重度**：P2
-**当前状态**：**部分完成**——P0-4 修复时引入了 `utils/request_id.py` 中间件，`X-Request-ID` 响应头 + ContextVar 都到位。但 **Prometheus /metrics 端点 + 结构化日志输出**仍缺。
+**当前状态**：**DONE**（commit `d01f735`，2026-08-22，详见 `docs/superpowers/plans/2026-08-22-p2-8-observability.md`）--`GET /metrics`（instrumentator HTTP 指标路由模板归一化，`METRICS_ENABLED` 开关）；业务指标 `gateflow_llm_call_total` / `gateflow_llm_latency_seconds` / `gateflow_audit_log_write_total` 埋点收敛在 audit 完成态两处公共出口；`LOG_FORMAT=text|json` 结构化日志，request_id 由 Filter 从 ContextVar 注入每条日志。原 request_id 中间件（P0-4）不变。
 
 **问题**：
 - 无 `/metrics` 端点（Prometheus 拉数据用）
@@ -567,14 +567,14 @@ async with engine.begin() as conn:
 | P1-7 | DONE | 88d8e70 | 删 MAX_LOG_CONTENT_LENGTH 100KB 死代码，body 透传 |
 | P1-8 | DONE | 86c6397 | error_message 字段 + Alembic 迁移；三条转发路径失败原因全部落库；API/审计页暴露；+6 tests |
 | P1-9 | 部分 | 031f40d | partial index 已正确落入 Alembic baseline 迁移（P2-5 顺带）；SQLite 测试盲区仍在 |
-| P2-1 | 部分 | — | 93 -> 175 tests（18 文件），CI 已跑 pytest；router HTTP 覆盖仍不全 |
+| P2-1 | 部分 | — | 93 -> 183 tests（19 文件），CI 已跑 pytest；router HTTP 覆盖仍不全 |
 | P2-2 | DONE | 03c2fbb | gateway.py -> model_configs.py，路径前缀不变 |
 | P2-3 | DONE | 032227b | 抽 _build_summary_query 静态方法，+7 tests 覆盖 4 维度 |
 | P2-4 | DONE | f3da9fd | 抽 app/utils/tokens.estimate_tokens，+9 tests；附带修 None/int 被 str() 误估 1 token 的 bug |
 | P2-5 | DONE | 031f40d | 启用 Alembic，移除 create_all/ensure_columns 临时方案；baseline 含 11 表 + partial index |
 | P2-6 | DONE | a02d7ea | cleanup_service 后台任务每 24h 扫描；>1h pending 标 failed + stale 标注（复用 P1-8 error_message） |
 | P2-7 | DONE | e081195 | 抽 app/utils/datetime_utils.utcnow()，替换全部调用点 |
-| P2-8 | 部分 | — | request_id 已做（P0-4 顺带）；Prometheus /metrics + 结构化日志待做 |
+| P2-8 | DONE | d01f735 | /metrics（HTTP + 业务指标）+ LOG_FORMAT=json 结构化日志 + request_id 注入；+8 tests |
 
 ---
 
