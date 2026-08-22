@@ -25,8 +25,7 @@
 **P1 / P2 按优先级排序在本 backlog 跟踪。**
 
 > **2026-08-22 状态同步**（与 git log / 代码实际状态对齐：当日完成 P1-8 / P2-6 / P1-3）：
-> - 17 项中 **15 项 DONE、2 项部分完成、0 项待办**
-> - 剩余均为部分完成（长期工程项，按需另立任务）：**P1-9**（partial index 已落入 Alembic 迁移，剩 SQLite 测试盲区）、**P2-1**（93 -> 183 tests，CI 已跑 pytest，router HTTP 覆盖仍不全）。P2-8 已于 2026-08-22 完成（`d01f735`，详见 `2026-08-22-p2-8-observability.md`）
+> - 17 项中 **17 项全部 DONE、0 项待办**（**P2-1 / P1-9 已于 2026-08-22 收口**，详见下方进度表）
 > - backlog 之外同期完成的功能（记录在 CHANGELOG）：admin 数据库备份（pg_dump）、暗色主题设计系统、表单 UX 优化、治理项（read-only 开源模式）
 > - 1 个 P2 已在 P0-4 修复时顺带完成（无 request_id 中间件）
 
@@ -566,8 +565,8 @@ async with engine.begin() as conn:
 | P1-6 | DONE | 63e66bd | 非流式 flush 代替 commit 让 LLM 失败回滚；流式 on_complete 失败时删 orphan |
 | P1-7 | DONE | 88d8e70 | 删 MAX_LOG_CONTENT_LENGTH 100KB 死代码，body 透传 |
 | P1-8 | DONE | 86c6397 | error_message 字段 + Alembic 迁移；三条转发路径失败原因全部落库；API/审计页暴露；+6 tests |
-| P1-9 | 部分 | 031f40d | partial index 已正确落入 Alembic baseline 迁移（P2-5 顺带）；SQLite 测试盲区仍在 |
-| P2-1 | 部分 | — | 93 -> 183 tests（19 文件），CI 已跑 pytest；router HTTP 覆盖仍不全 |
+| P1-9 | DONE | 2026-08-22 | partial index 已正确落入 Alembic baseline 迁移（P2-5 顺带）；SQLite 盲区用配置断言测试收口（`tests/models/test_audit_index.py` 锁定 `postgresql_where` 声明）；PG 运行时行为由生产迁移承载，SQLite 无法执行的已显式声明接受 |
+| P2-1 | DONE | 2026-08-22 | 183 -> 263 tests；补齐 10 个 router 的 HTTP 测试（auth / users / api_keys / provider_keys / gateway_forward / usage / chat / agent_types / model_configs / backup）+ `tests/routers/conftest.py` 共享 client/as_user 夹具；router HTTP 覆盖收盘 |
 | P2-2 | DONE | 03c2fbb | gateway.py -> model_configs.py，路径前缀不变 |
 | P2-3 | DONE | 032227b | 抽 _build_summary_query 静态方法，+7 tests 覆盖 4 维度 |
 | P2-4 | DONE | f3da9fd | 抽 app/utils/tokens.estimate_tokens，+9 tests；附带修 None/int 被 str() 误估 1 token 的 bug |

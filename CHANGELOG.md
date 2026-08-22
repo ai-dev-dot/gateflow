@@ -8,6 +8,8 @@
 ### Added
 - **审计链路 PII 脱敏**（`ENABLE_PII_REDACTION` 生效，spec v0.2.0 承诺落地）：开启后，LLM 请求体（明文 preview 与 `AUDIT_LOG_FULL_BODY=true` 时的加密 full body）、失败原因 `error_message`、客户端 `User-Agent` 在落库前做启发式 regex 打码，邮箱/手机号/身份证/银行卡/AWS Key/API Key 掩码为 `[EMAIL]` 等类别占位。新增 `app/services/redactor.py`（纯函数、零依赖、单次交替正则 + 校验位/Luhn 并集门、幂等）；**fail-open**（redact 异常只记 log + 计入 `gateflow_pii_redact_failure_total`，绝不阻断审计写入）；默认关闭 = 零行为变化；范围限定审计链路（不覆盖 Chat 对话记录表、备份、服务器日志，界外为显式决策）；修改配置需重启
 - README / `.env.example` / `spec v0.2.0` 文档同步：`ENABLE_PII_REDACTION` 语义与 `AUDIT_LOG_FULL_BODY` 释义勘误（原写"true 不存 body"，实为"true=加密存 full body"）
+- **P2-1 补齐 router HTTP 测试**：新增 10 个 router 的 HTTP 覆盖（auth / users / api_keys / provider_keys / gateway_forward / usage / chat / agent_types / model_configs / backup）+ `tests/routers/conftest.py` 共享 `client`/`as_user`/`as_auth_context` 夹具；全套 183 -> 263 tests（backlog P2-1 收口 DONE）
+- **P1-9 SQLite 盲区收口**：新增 `tests/models/test_audit_index.py`，锁定审计 pending partial index（PG-only）的 `postgresql_where` 模型声明；SQLite 无法执行 PG 运行时行为的盲区显式声明接受——生产 PG 由 Alembic baseline 迁移承载（backlog P1-9 收口 DONE）
 
 ## [0.2.0] - 2026-08-22
 
