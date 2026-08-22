@@ -138,6 +138,8 @@ def redact_text(text: str) -> str:
 5. **与加密的关系**：脱敏降低明文泄露面，不是加密替代；full body 仍按原策略 Fernet 加密
 6. **范围边界**：不覆盖 Chat 对话表与备份（见 §5）
 7. **服务器日志 sink**：上游错误体 / exception repr 在 `logger.warning` / `logger.error` 中是原文（DB 之外的 sink），本期 DB 打码不覆盖 stdout/file 日志——部署侧需日志脱敏或访问控制（已评估，非本期范围）
+8. **卡号被数字包围逃逸**：13-19 位银行卡若与前后数字连成更长的 digit-run（如 `1` + 卡号 + `1`），整段 run 校验不过即不掩码（宁漏不误伤的设计，未做 digit-run 内滑窗 Luhn 子段识别——超出本 spec 已验证范围，列为开放项）
+9. **`sk-` 前缀误报**：`sk-[A-Za-z0-9]{20,}` 可能命中词尾恰为"sk-" + 20+ 字母数字的罕见词（如 `risk-2026Q3report…`），换取 API Key 类覆盖必发。误报不泄露，但会不可逆改写审计预览——已知权衡（regex 启发式的既定代价）
 
 ---
 

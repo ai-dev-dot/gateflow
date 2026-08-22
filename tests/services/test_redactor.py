@@ -115,6 +115,16 @@ def test_invalid_checksum_id_not_masked():
     assert redact_text(f"编号 {bad} 至此") == f"编号 {bad} 至此"
 
 
+def test_long_alnum_block_no_pii_unchanged():
+    """O(n²) 回归防护（对抗评审 #1）：无 `@` 的长纯字母/数字块必须原样返回。
+
+    修复前 EMAIL 无界量词在无 @ 长串上逐位置回溯，2KB ~10ms 阻塞事件循环；
+    这里只断言行为（原文不变），计时由审查手测验证线性化。
+    """
+    for s in ["x" * 2048, "9" * 2048, "abcdefghijkl" * 170]:
+        assert redact_text(s) == s, f"len={len(s)} 的长块不应被改写"
+
+
 # ---------- 边界：Unicode / 中文 / 幂等 ----------
 
 

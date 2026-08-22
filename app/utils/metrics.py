@@ -1,12 +1,13 @@
 """业务指标定义与埋点 helper（P2-8）。
 
-三组指标（backlog P2-8 指定），全部埋在 audit 完成态更新的公共出口，
-三条转发路径（OpenAI 网关 / Anthropic 透传 / bridge）自动全覆盖：
-
+P2-8 指定的三组指标，全部埋在 audit 完成态更新的公共出口：
 - ``gateflow_llm_call_total{model, provider, status}`` 调用结果计数
 - ``gateflow_llm_latency_seconds{model, provider}`` 上游延迟直方图
 - ``gateflow_audit_log_write_total{status}`` 审计行落库计数（含 P2-6
   清理产生的 stale 标记）
+
+后续追加：``gateflow_audit_log_deleted_total``（保留期清理）、
+``gateflow_pii_redact_failure_total``（PII 脱敏 fail-open 失败计数）。
 
 label 值取自 AuditLog 快照字段（model/provider 为管理员配置的有限集合，
 无用户输入，基数安全）。HTTP 层指标由 prometheus-fastapi-instrumentator
