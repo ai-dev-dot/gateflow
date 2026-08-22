@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 20
     DB_POOL_RECYCLE_SECONDS: int = 1800
 
+    # Observability (P2-8)
+    # LOG_FORMAT: "text" (dev, console-readable) or "json" (prod, one-line JSON
+    # per record incl. request_id). LOG_JSON is not used - LOG_FORMAT only.
+    LOG_FORMAT: str = "text"
+    # Expose GET /metrics (Prometheus text format). Keep true on intranet
+    # deployments; put a reverse proxy with auth in front if exposed publicly.
+    METRICS_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
 

@@ -37,6 +37,7 @@ from app.services.provider_adapters.base import BaseAdapter, StreamEvent
 from app.services.provider_key_service import ProviderKeyService
 from app.utils.datetime_utils import utcnow
 from app.utils.http_client import get_http_client
+from app.utils.metrics import observe_llm_call
 
 logger = logging.getLogger(__name__)
 
@@ -346,6 +347,14 @@ class StreamForwarder:
                     audit_log.latency_ms = latency_ms
                     audit_log.completed_at = utcnow()
                     audit_log.error_message = error_message[:500] if error_message else None
+
+                    # P2-8: 业务指标（流式/bridge 路径的公共出口）
+                    observe_llm_call(
+                        model=audit_log.model,
+                        provider=audit_log.provider or "-",
+                        status=audit_log.status,
+                        latency_ms=latency_ms,
+                    )
 
                 # Caller hook (e.g. save AI message + conversation title)
                 if on_complete is not None:

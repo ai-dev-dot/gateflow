@@ -20,6 +20,7 @@ from app.config import get_settings
 from app.models.audit import AuditLog
 from app.utils.crypto import decrypt_key, encrypt_key
 from app.utils.datetime_utils import utcnow
+from app.utils.metrics import observe_llm_call
 
 
 class AuditService:
@@ -137,6 +138,14 @@ class AuditService:
         # 内部诊断信息（上游错误 body / 异常 repr），截断 500 字符。
         # 仅落库供审计视图查看，永不回显给 LLM 客户端（P0-4）。
         log.error_message = error_message[:500] if error_message else None
+
+        # P2-8: 业务指标（非流式路径的公共出口；流式在 _save_after_stream）
+        observe_llm_call(
+            model=log.model,
+            provider=log.provider or "-",
+            status=log.status,
+            latency_ms=latency_ms,
+        )
 
     # ---------- 读取路径（管理后台用）----------
 

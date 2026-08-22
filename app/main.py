@@ -28,6 +28,7 @@ from app.services.cleanup_service import stale_pending_cleanup_loop
 from app.utils.crypto import verify_fernet_works
 from app.utils.hashing import verify_hmac_works
 from app.utils.http_client import close_http_client
+from app.utils.logging_config import setup_logging
 from app.utils.request_id import RequestIDMiddleware
 from app.utils.startup_checks import verify_jwt_secret_not_placeholder
 
@@ -36,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # P2-8: structured logging (text/json via LOG_FORMAT) before anything
+    # else logs -- all startup errors below land in the configured format.
+    setup_logging(get_settings().LOG_FORMAT)
+
     # Fail-fast: verify all critical config BEFORE serving any traffic.
     # Order matters — cheapest / most likely to fail checks first.
     verify_jwt_secret_not_placeholder()  # P0-1
@@ -104,6 +109,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# P2-8: HTTP metrics + GET /metrics (Prometheus text format).
+# Instrumentator normalizes paths to route templates so /api/audit/logs/{id}
+# does not explode label cardinality. Gate behind METRICS_ENABLED for
+# deployments that do not want the endpoint exposed.
+if get_settings().METRICS_ENABLED:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator(
+        should_group_status_codes=False,
+    ).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 app.include_router(auth_router)
 app.include_router(users_router)

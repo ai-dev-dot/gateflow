@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
 from app.utils.datetime_utils import utcnow
+from app.utils.metrics import observe_stale_cleanup
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,10 @@ async def mark_stale_pending_logs(
         )
     )
     await db.commit()
-    return result.rowcount or 0
+    count = result.rowcount or 0
+    # P2-8: stale 清理量进业务指标（无 model/provider 维度，按 status=stale 计）
+    observe_stale_cleanup(count)
+    return count
 
 
 async def stale_pending_cleanup_loop(

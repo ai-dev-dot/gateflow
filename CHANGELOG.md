@@ -25,6 +25,7 @@
 - **错误响应安全工具**（`utils/errors.py`）：固定文案 + request_id，不泄露内部异常
 - **P2-6 僵尸 pending 审计日志定时清理**：lifespan 后台任务每 24h 扫描（启动后延迟 5 分钟首轮），把超过 1h 仍 pending 的审计日志标为 failed 并在 `error_message` 标注 stale（复用 P1-8 字段），防止 `ix_audit_logs_status_pending` partial index 膨胀；单轮失败仅记日志不中断循环；进程退出时任务随之取消
 - **P1-3 认证热路径写优化**：API Key 认证不再每个请求 UPDATE+commit `last_used_at`（QPS 高时的 DB 锁竞争瓶颈），改为记内存 set，lifespan 后台任务每 30s 批量 flush 一次（单条 `UPDATE ... WHERE id IN (...)`）；flush 失败保留 buffer 下轮重试；进程优雅关闭时做最后一次 flush，崩溃最多丢 30s 的 `last_used_at`（非合规关键字段，可接受）
+- **P2-8 可观测性**：`GET /metrics` 端点（Prometheus 文本格式；`prometheus-fastapi-instrumentator` 提供**路由模板归一化**的 HTTP 指标，`METRICS_ENABLED=false` 可整体关闭）；业务指标三组--`gateflow_llm_call_total{model,provider,status}`、`gateflow_llm_latency_seconds{model,provider}`（buckets 100ms-300s）、`gateflow_audit_log_write_total{status}`（含 P2-6 stale 清理计数），埋点收敛在 audit 完成态的两处公共出口（`record_completion` / `_save_after_stream`），三条转发路径自动全覆盖，label 取自 AuditLog 快照（与审计口径一致）；结构化日志 `LOG_FORMAT=text|json`（默认 text 控制台可读；json 模式单行输出含 `timestamp/level/logger/request_id/message`，request_id 由 logging Filter 从 ContextVar 注入、业务代码零改动，与 `X-Request-ID` 响应头、错误响应三方对齐）；`httpx` 日志降级 WARNING
 
 ### Changed
 - **P2-5 启用 Alembic 迁移**：schema 演进由 Alembic 接管，移除 lifespan 里的 `Base.metadata.create_all` 和 `system_config.ensure_columns`（手动 ALTER TABLE）临时方案。`start.bat`/`start.sh` 启动时自动 `alembic upgrade head`；baseline 迁移含全部 11 张表 + partial index（`ix_audit_logs_status_pending` 的 `postgresql_where` 正确落入迁移）。改 schema 流程：`alembic revision --autogenerate -m "..."` → review → `alembic upgrade head`
