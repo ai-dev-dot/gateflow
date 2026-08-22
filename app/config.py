@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # Audit log data policy (see README "数据存储与隐私" + spec §6.3)
     AUDIT_LOG_FULL_BODY: bool = False
     AUDIT_LOG_PREVIEW_CHARS: int = 80
+    # 保留期由 lifespan 后台任务执行（cleanup_service，每 24h 一轮）。
+    # <= 0 表示永久保留（跳过删除）。用量统计基于 AuditLog 实时聚合，
+    # 保留期外的数据删除后统计窗口同步缩短。
     AUDIT_LOG_RETENTION_DAYS: int = 90
     ENABLE_PII_REDACTION: bool = False
 

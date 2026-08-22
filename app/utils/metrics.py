@@ -36,6 +36,17 @@ AUDIT_WRITES = Counter(
     ["status"],
 )
 
+AUDIT_DELETED = Counter(
+    "gateflow_audit_log_deleted_total",
+    "Audit log rows deleted by the retention task (AUDIT_LOG_RETENTION_DAYS)",
+)
+
+
+def observe_audit_deletion(count: int) -> None:
+    """Record rows deleted by the retention task."""
+    if count:
+        AUDIT_DELETED.inc(count)
+
 
 def observe_llm_call(model: str, provider: str, status: str, latency_ms: int | None) -> None:
     """Record one finalized LLM call.

@@ -1,10 +1,11 @@
-"""Tests for zombie pending audit log cleanup (P2-6).
+"""Tests for audit maintenance (P2-6 stale pending + retention deletion).
 
 Covers:
 - Old pending rows -> failed + stale marker in error_message
 - Fresh pending rows are left alone (still in-flight requests)
 - Completed/failed rows are never touched
 - Returns the number of rows marked
+- Retention: expired rows deleted, fresh kept, <=0 disables, batched loop
 """
 
 from datetime import timedelta
@@ -14,7 +15,11 @@ from sqlalchemy import select
 
 from app.models.audit import AuditLog
 from app.services.audit_service import AuditService
-from app.services.cleanup_service import STALE_MARKER, mark_stale_pending_logs
+from app.services.cleanup_service import (
+    STALE_MARKER,
+    delete_expired_audit_logs,
+    mark_stale_pending_logs,
+)
 from app.utils.datetime_utils import utcnow
 
 
@@ -98,3 +103,68 @@ async def test_returns_total_marked(db_session, test_user):
     count = await mark_stale_pending_logs(db_session, older_than_seconds=3600)
 
     assert count == 2
+
+# ---------- Retention deletion (AUDIT_LOG_RETENTION_DAYS) ----------
+
+
+async def _make_completed_log(db_session, test_user, *, age_days=0):
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="gpt-4",
+        provider="openai",
+        path="/v1/chat/completions",
+        request_body=None,
+        is_stream=False,
+    )
+    log.status = "completed"
+    log.created_at = utcnow() - timedelta(days=age_days)
+    await db_session.commit()
+    await db_session.refresh(log)
+    return log
+
+
+@pytest.mark.asyncio
+async def test_delete_expired_removes_only_old_rows(db_session, test_user):
+    """Rows older than the retention window are deleted; fresh ones stay."""
+    from app.utils.metrics import AUDIT_DELETED
+
+    old = await _make_completed_log(db_session, test_user, age_days=91)
+    fresh = await _make_completed_log(db_session, test_user, age_days=1)
+    before_metric = AUDIT_DELETED._value.get()
+
+    count = await delete_expired_audit_logs(db_session, retention_days=90)
+
+    assert count == 1
+    assert await db_session.get(AuditLog, old.id) is None
+    assert await db_session.get(AuditLog, fresh.id) is not None
+    assert AUDIT_DELETED._value.get() == before_metric + 1
+
+
+@pytest.mark.asyncio
+async def test_delete_retention_zero_or_negative_disables(db_session, test_user):
+    """retention_days <= 0 means keep forever: nothing is deleted."""
+    old = await _make_completed_log(db_session, test_user, age_days=365)
+
+    assert await delete_expired_audit_logs(db_session, retention_days=0) == 0
+    assert await delete_expired_audit_logs(db_session, retention_days=-1) == 0
+    assert await db_session.get(AuditLog, old.id) is not None
+
+
+@pytest.mark.asyncio
+async def test_delete_runs_in_batches(db_session, test_user):
+    """More rows than one batch -> the loop keeps going until all expired
+    rows are gone (batch_size parameterized down to 2 for the test)."""
+    ids = [
+        (await _make_completed_log(db_session, test_user, age_days=100)).id
+        for _ in range(5)
+    ]
+
+    count = await delete_expired_audit_logs(
+        db_session, retention_days=90, batch_size=2
+    )
+
+    assert count == 5
+    for log_id in ids:
+        assert await db_session.get(AuditLog, log_id) is None
+

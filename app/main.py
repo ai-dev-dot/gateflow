@@ -24,7 +24,7 @@ from app.routers.provider_keys import router as provider_keys_router
 from app.routers.usage import router as usage_router
 from app.routers.users import router as users_router
 from app.services.auth_service import AuthService
-from app.services.cleanup_service import stale_pending_cleanup_loop
+from app.services.cleanup_service import audit_maintenance_loop
 from app.utils.crypto import verify_fernet_works
 from app.utils.hashing import verify_hmac_works
 from app.utils.http_client import close_http_client
@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 
     # P2-6: periodically mark zombie pending audit logs as failed
     # (finally-block saves that never landed due to crash / DB outage).
-    cleanup_task = asyncio.create_task(stale_pending_cleanup_loop())
+    cleanup_task = asyncio.create_task(audit_maintenance_loop())
 
     # P1-3: batch-flush api_key.last_used_at off the auth hot path.
     last_used_task = asyncio.create_task(last_used_flush_loop())

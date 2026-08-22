@@ -867,7 +867,7 @@ Admin 看他人日志的 body 必须留痕——这是 GDPR / SOC 2 的硬要求
 ### 6.5 后续迭代（不在 MVP）
 
 - v0.2.0：Presidio 集成 PII 自动脱敏（详见附录 A `ENABLE_PII_REDACTION`）
-- v0.2.0：定时任务清理过期日志（`AUDIT_LOG_RETENTION_DAYS`）
+- v0.2.0：定时任务清理过期日志（`AUDIT_LOG_RETENTION_DAYS`）——✅ 已于 2026-08-22 实现（`cleanup_service.audit_maintenance_loop`，详见 `plans/2026-08-22-audit-retention.md`）
 - v0.3.0：用户自助"我的数据导出/删除"接口（GDPR Art 15/17）
 - v0.3.0：admin 角色分层（support/security/super，super 才能看 body）
 - v0.3.0：DB 静态加密（PG TDE / 磁盘加密）
