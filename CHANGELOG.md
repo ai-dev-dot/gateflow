@@ -26,6 +26,7 @@
 
 ### Changed
 - **P2-5 启用 Alembic 迁移**：schema 演进由 Alembic 接管，移除 lifespan 里的 `Base.metadata.create_all` 和 `system_config.ensure_columns`（手动 ALTER TABLE）临时方案。`start.bat`/`start.sh` 启动时自动 `alembic upgrade head`；baseline 迁移含全部 11 张表 + partial index（`ix_audit_logs_status_pending` 的 `postgresql_where` 正确落入迁移）。改 schema 流程：`alembic revision --autogenerate -m "..."` → review → `alembic upgrade head`
+- **P2-7 消除 `datetime.utcnow()` 弃用警告**：抽 `app/utils/datetime_utils.utcnow()`（naive UTC，行为与旧 API 完全一致）替换全部调用点（middleware / services / models），消除 Python 3.12+ DeprecationWarning
 - **重命名**：`app/routers/gateway.py` → `app/routers/model_configs.py`（路径前缀 `/api/gateway/models` 不变），消除与 `gateway_forward.py` 的命名混淆
 - **DRY auth_middleware**：抽 `_resolve_credentials(credentials, db) -> (User, api_key_id, agent_type)` 共享 helper，`get_current_user` / `get_auth_context` 都基于它。**附带修复**：JWT 路径用显式 `UUID(sub)` 转换，SQLite 测试环境也能跑通（之前依赖 PG 隐式转换）
 - **DRY Anthropic bridge**：`StreamForwarder.forward()` 加 `transform_chunk`（bytes→bytes）和 `error_sse`（client-protocol 错误格式）钩子；非流式路径加公共 `save_after_stream()` 方法。`anthropic_forward.py` 的 80 行 `bridge_stream` 闭包删除，改为 `forwarder.forward(... transform_chunk=AnthropicBridgeTransformer(), error_sse=anthropic.error_sse)`，不再调用 `_save_after_stream` 私有方法

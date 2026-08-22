@@ -1,5 +1,8 @@
 # 闸机 GateFlow MVP 实现计划
 
+> **✅ 已完成（2026-06）：** MVP 已全部落地（四条路径：OpenAI 网关 / Anthropic 网关 / Chat / 管理页面），随后完成 5 个 P0 安全修复与 P1/P2 质量治理（大部分完成，进度见 `2026-06-05-gateflow-p1-p2-backlog.md`）。
+> **注意：** 本计划基于当时的 `backend/` 嵌套结构和 React 前端编写。当前项目结构已扁平化、前端已迁移到 Jinja2 + htmx + Tailwind（详见 `2026-06-06-frontend-refactor.md`），本文件仅作历史参考。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 构建企业 AI 网关 MVP，支持统一 API 转发、用户权限管理、审计日志、用量统计和问答对话。

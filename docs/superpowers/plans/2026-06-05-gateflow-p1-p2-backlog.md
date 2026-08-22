@@ -22,7 +22,14 @@
 - P0-4 6 处 `str(e)` 透传修复
 - P0-5 DB 连接池 + CORS 配置化
 
-**P1 / P2 暂未修复**，按优先级排序在本 backlog 跟踪。**状态**：1 个 P2 已在 P0-4 修复时顺带完成（无 request_id 中间件）；其余 16 个待办。
+**P1 / P2 按优先级排序在本 backlog 跟踪。**
+
+> **2026-08-22 状态同步**（与 git log / 代码实际状态对齐）：
+> - 17 项中 **11 项 DONE、3 项部分完成、3 项待办**
+> - 剩余待办：**P1-3**（认证热路径写优化）、**P1-8**（异常分支写入 audit log）、**P2-6**（僵尸 pending 清理）
+> - 部分完成：**P1-9**（partial index 已正确落入 Alembic baseline 迁移，剩 SQLite 测试盲区）、**P2-1**（93 -> 161 tests，CI 已跑 pytest，router HTTP 覆盖仍不全）、**P2-8**（request_id 已做，metrics/结构化日志待做）
+> - backlog 之外同期完成的功能（记录在 CHANGELOG）：admin 数据库备份（pg_dump）、暗色主题设计系统、表单 UX 优化、治理项（read-only 开源模式）
+> - 1 个 P2 已在 P0-4 修复时顺带完成（无 request_id 中间件）
 
 ## 排序原则
 
@@ -309,7 +316,7 @@ P0-4 修了 `str(e)` 透传，但异常分支**仍然没把 error message 写入
 
 **位置**：`backend/app/models/audit.py:53-57`、`backend/tests/conftest.py:50-55`
 **严重度**：P1
-**当前状态**：未开始
+**当前状态**：**部分完成**--选项 B 的迁移侧已随 P2-5 解决（`postgresql_where` 正确落入 Alembic baseline 迁移，生产 PG 会按预期创建 partial index）。剩余：SQLite 测试盲区仍在（测试仍无法验证该 index 行为），如需彻底解决可走选项 A（CI 用真 PG 跑测试）
 
 **问题**：
 ```python
@@ -341,7 +348,7 @@ Index(
 
 **位置**：`backend/tests/` 整目录
 **严重度**：P2
-**当前状态**：未开始
+**当前状态**：**部分完成**（2026-08-22 核实）--测试从 93 个增至 **161 个（17 个文件）**，CI 已跑 pytest（`.github/workflows/test.yml`）；P1/P2 修复各带新增测试（P1-1 +10 / P1-2 +15 / P2-3 +7 / P2-4 +9 等）。剩余缺口：router HTTP 路径仍只有 3 个测试文件（anthropic bridge / audit access / pages），auth / users / api_keys / provider_keys / gateway_forward / chat / usage 等端点未覆盖；vitest/RTL 部分因前端迁移（2026-06-06）已不适用，改为 `tests/routers/test_pages.py` 10 个页面路由测试
 
 **现状统计**（基于 2026-06-05 修复后）：
 
@@ -435,7 +442,7 @@ def _build_summary_query(dimension_field, include_username, filters):
 
 **位置**：`backend/app/main.py:27-28`
 **严重度**：P2
-**当前状态**：未开始
+**当前状态**：**DONE**（commit `031f40d`，2026-07-29）--Alembic 已启用，lifespan 里的 `create_all` 和 `ensure_columns` 临时方案已移除；baseline 迁移含全部 11 张表 + partial index（`postgresql_where` 正确落入）；`start.bat`/`start.sh` 启动时自动 `alembic upgrade head`。详见 CHANGELOG「P2-5 启用 Alembic 迁移」条目
 
 **问题**：
 ```python
@@ -495,7 +502,7 @@ async with engine.begin() as conn:
 - `backend/app/models/provider_key.py:35, 36`
 
 **严重度**：P2
-**当前状态**：未开始
+**当前状态**：**DONE**（commit `e081195`，2026-07-29）--抽 `app/utils/datetime_utils.utcnow()`（naive UTC，行为与 `datetime.utcnow()` 一致）替换全部调用点，消除运行时 DeprecationWarning
 
 **问题**：`datetime.utcnow()` 在 Python 3.12+ 标记 deprecated，推荐 `datetime.now(UTC)`。项目用 Python 3.13，**每次运行会输出 DeprecationWarning**（当前 230 个 warning 几乎全是这个）。
 
@@ -547,30 +554,28 @@ async with engine.begin() as conn:
 
 # 进度跟踪
 
-每修一个，更新本表（PR 合入后由 Claude 自动同步，或人工手动更新）：
+每修一个，更新本表（PR 合入后由 Claude 自动同步，或人工手动更新）。
+最后同步：**2026-08-22**（依据 git log + 代码核实）。
 
 | 编号 | 状态 | Commit | 备注 |
 |------|------|--------|------|
 | P1-1 | DONE | 7c3b3dc | 抽 _resolve_credentials，+10 tests，顺带修 SQLite 下 JWT sub 隐式转换 bug |
 | P1-2 | DONE | 197042d | bridge_stream 80 行删掉，+transform_chunk/error_sse 钩子，+AnthropicBridgeTransformer，+save_after_stream 公共方法；+15 tests |
-| P1-3 | TODO | — | |
-| P1-4 | TODO | — | |
-| P1-5 | TODO | — | |
-| P1-6 | TODO | — | |
-| P1-7 | DONE | 88d8e70 | 删 MAX_LOG_CONTENT_LENGTH 100KB 死代码，body 透传 |
+| P1-3 | TODO | — | 认证热路径每次请求 UPDATE+commit，当前 0 用户不急 |
 | P1-4 | DONE | 4188d94 | get_messages 改 None/[] 契约，去掉 router 端 N+1 兜底 |
 | P1-5 | DONE | 290d7e2 | 抽 _get_capped_history，system 消息全保留 + 最近 50 user/assistant |
-| P1-6 | DONE | (next) | 非流式 flush 代替 commit 让 LLM 失败回滚；流式 on_complete 失败时删 orphan |
-| P1-8 | TODO | — | |
-| P1-9 | TODO | — | |
-| P2-1 | TODO | — | |
-| P2-2 | DONE | 03c2fbb | gateway.py → model_configs.py，路径前缀不变 |
+| P1-6 | DONE | 63e66bd | 非流式 flush 代替 commit 让 LLM 失败回滚；流式 on_complete 失败时删 orphan |
+| P1-7 | DONE | 88d8e70 | 删 MAX_LOG_CONTENT_LENGTH 100KB 死代码，body 透传 |
+| P1-8 | TODO | — | 异常分支 error_message 未写入 audit log（model 无该字段） |
+| P1-9 | 部分 | 031f40d | partial index 已正确落入 Alembic baseline 迁移（P2-5 顺带）；SQLite 测试盲区仍在 |
+| P2-1 | 部分 | — | 93 -> 161 tests（17 文件），CI 已跑 pytest；router HTTP 覆盖仍不全 |
+| P2-2 | DONE | 03c2fbb | gateway.py -> model_configs.py，路径前缀不变 |
 | P2-3 | DONE | 032227b | 抽 _build_summary_query 静态方法，+7 tests 覆盖 4 维度 |
 | P2-4 | DONE | f3da9fd | 抽 app/utils/tokens.estimate_tokens，+9 tests；附带修 None/int 被 str() 误估 1 token 的 bug |
-| P2-5 | TODO | — | |
-| P2-6 | TODO | — | |
-| P2-7 | TODO | — | |
-| P2-8 | 部分（request_id 已做，metrics/结构化日志待做） | — | |
+| P2-5 | DONE | 031f40d | 启用 Alembic，移除 create_all/ensure_columns 临时方案；baseline 含 11 表 + partial index |
+| P2-6 | TODO | — | 僵尸 pending audit log 无定时清理 |
+| P2-7 | DONE | e081195 | 抽 app/utils/datetime_utils.utcnow()，替换全部调用点 |
+| P2-8 | 部分 | — | request_id 已做（P0-4 顺带）；Prometheus /metrics + 结构化日志待做 |
 
 ---
 
