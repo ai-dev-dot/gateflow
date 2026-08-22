@@ -37,6 +37,7 @@ def _to_list_item(log) -> AuditLogListItem:
         total_tokens=log.total_tokens,
         latency_ms=log.latency_ms,
         status_code=log.status_code,
+        error_message=log.error_message,
         is_stream=log.is_stream,
         ip_address=log.ip_address,
         user_agent=log.user_agent,

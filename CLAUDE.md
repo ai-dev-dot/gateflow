@@ -35,6 +35,7 @@ GateFlow（闸机）是企业 AI 网关 -- 所有大模型调用的统一入口�
 | Jinja2 | 3.1.6 | HTML 模板引擎（管理页面） |
 | Alembic | 1.18.4 | 数据库迁移（alembic/versions/） |
 | prometheus-fastapi-instrumentator | 8.1.0 | /metrics 端点 + HTTP 指标（路由模板归一化） |
+| prometheus-client | 0.26.0 | Counter/Histogram 业务指标（metrics.py 直接使用） |
 | python-json-logger | 4.2.0 | 结构化日志（LOG_FORMAT=json） |
 
 **前端（CDN 引入，无构建链）：**
@@ -53,7 +54,7 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000   # 启动开发服务器
 python -m pytest tests/ -v     # 全套测试（186 个）
 python -m pytest tests/ -v -k "test_cleanup"  # 运行匹配的测试
-python -m ruff check app/ tests/  # lint（验收标准：无新警告；历史遗留 13 个在 session.py/pages.py/backup_service.py/env.py）
+python -m ruff check app/ tests/  # lint（验收标准：无新警告；历史遗留 12 个在 session.py / pages.py / backup_service.py / tests/routers/test_pages.py）
 ```
 
 表结构由 **Alembic** 管理：`start.bat` / `start.sh` 启动时自动跑 `alembic upgrade head`（首次建表 + 增量迁移）；启动时自动 seed 管理员账号和 AgentType 默认值。手动迁移：`python -m alembic upgrade head`；改 schema 后生成迁移：`python -m alembic revision --autogenerate -m "描述"`（生成后需人工 review 产物，message 用 ASCII 避免 Windows zh-CN 编码问题）。
@@ -74,6 +75,7 @@ D:\APP\GateFlow\
 │   ├── models/             # SQLAlchemy 模型
 │   ├── middleware/          # 认证（JWT + cookie session）
 │   ├── schemas/            # Pydantic schema
+│   ├── utils/              # 横切工具（crypto/hashing/metrics/logging_config/datetime_utils/tokens）
 │   └── main.py             # FastAPI 应用入口
 ├── tests/                  # pytest 测试（SQLite in-memory + StaticPool）
 ├── requirements.txt

@@ -127,6 +127,7 @@ api_key  = "gf_your_enterprise_token"        # 闸机发的 Token
 | Jinja2 | 3.1.6 | HTML 模板引擎 |
 | Alembic | 1.18.4 | 数据库迁移 |
 | prometheus-fastapi-instrumentator | 8.1.0 | `/metrics` Prometheus 指标端点 |
+| prometheus-client | 0.26.0 | 业务指标 Counter/Histogram |
 | python-json-logger | 4.2.0 | 结构化日志（`LOG_FORMAT=json`） |
 | Tailwind CSS v4 | CDN | 样式 |
 | htmx 2.0 | CDN | 交互增强 |

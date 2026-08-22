@@ -202,3 +202,34 @@ async def test_detail_include_body_admin_no_body_stored(db_session, test_user, a
         select(AuditLog).where(AuditLog.path == "/admin/audit-access")
     )
     assert len(result.scalars().all()) == 1
+
+@pytest.mark.asyncio
+async def test_list_and_detail_return_error_message(db_session, test_user, admin_user, client):
+    """P1-8 regression: failed rows must surface error_message through the API.
+
+    The router projection (_to_list_item) originally omitted the field, so
+    the schema default None leaked out and the audit page tooltip never
+    fired - while the DB layer had it all along. This pins the serialization
+    layer that the original P1-8 tests missed.
+    """
+    log = await _make_log(test_user, "prompt that failed upstream")
+    log.status = "failed"
+    log.status_code = 502
+    log.error_message = 'upstream said: {"error":"bad gateway"}'
+    db_session.add(log)
+    await db_session.commit()
+    await db_session.refresh(log)
+
+    app.dependency_overrides[
+        __import__("app.middleware.auth_middleware", fromlist=["get_current_user"]).get_current_user
+    ] = await _override_user(admin_user)
+
+    resp = await client.get("/api/audit/logs")
+    assert resp.status_code == 200
+    item = resp.json()["items"][0]
+    assert item["error_message"] == 'upstream said: {"error":"bad gateway"}'
+
+    detail = await client.get(f"/api/audit/logs/{log.id}")
+    assert detail.status_code == 200
+    assert detail.json()["error_message"] == 'upstream said: {"error":"bad gateway"}'
+
