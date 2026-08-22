@@ -41,8 +41,7 @@
 - 参见 [README 快速开始](README.md#快速开始)
 
 ### 前端
-- Node.js 24
-- TypeScript 5.6+
+- 无构建链：Tailwind CSS v4 / htmx 2.0 / ECharts 5（CDN 引入），页面为 Jinja2 服务端渲染
 
 ## 许可证
 

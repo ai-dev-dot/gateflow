@@ -86,9 +86,10 @@ api_key  = "gf_your_enterprise_token"        # 闸机发的 Token
 
 - **统一 API 网关**：OpenAI / Anthropic 兼容协议，上游 Key 池自动故障转移
 - **Web AI 对话**：多模型、流式打字机效果、历史会话保存
-- **全量调用审计**：所有 LLM 调用完整记录，事后可追溯
+- **全量调用审计**：所有 LLM 调用完整记录，失败原因可查，事后可追溯
 - **多维度用量统计**：按用户、部门、模型、客户端实时聚合
 - **双模身份认证**：JWT 与 API Key 并存，支持部门和角色
+- **可观测性**：`/metrics` Prometheus 指标（HTTP + LLM 调用量/延迟），JSON 结构化日志，调用日志保留期可配
 
 ## 数据存储与隐私
 
@@ -100,6 +101,9 @@ api_key  = "gf_your_enterprise_token"        # 闸机发的 Token
 | Prompt 短预览（≤80 字符完整；超长 head40...tail37 截断） | 否 | 同上（用于 debug 时快速看上下文） |
 | 完整 Prompt 全文 | **Fernet 加密** | **只有 admin 显式带 `?include_body=true` 才返**，且每次访问写 meta-audit |
 | 完整 Response 全文 | **Fernet 加密** | 同上 |
+| 失败原因（error_message，≤500 字符：上游错误摘要/异常摘要） | 否 | 用户自己 + admin（排障用，不含凭据） |
+
+**日志保留期**：调用日志默认保留 90 天，超期由后台任务自动清理（`AUDIT_LOG_RETENTION_DAYS` 可调，`0` 或负数表示永久保留）。需要长期历史请先用管理后台的备份功能导出。
 
 **Admin 访问完整 body 会被记录**：`/admin/audit-access` 路径专门记录"admin 何时查看了谁的日志"，方便后续审计与告警。
 
@@ -121,6 +125,9 @@ api_key  = "gf_your_enterprise_token"        # 闸机发的 Token
 | passlib[bcrypt] | 1.7.4 | 密码哈希 |
 | cryptography | — | Fernet 加密 + HMAC-SHA256 |
 | Jinja2 | 3.1.6 | HTML 模板引擎 |
+| Alembic | 1.18.4 | 数据库迁移 |
+| prometheus-fastapi-instrumentator | 8.1.0 | `/metrics` Prometheus 指标端点 |
+| python-json-logger | 4.2.0 | 结构化日志（`LOG_FORMAT=json`） |
 | Tailwind CSS v4 | CDN | 样式 |
 | htmx 2.0 | CDN | 交互增强 |
 | ECharts 5 | CDN | 图表 |
