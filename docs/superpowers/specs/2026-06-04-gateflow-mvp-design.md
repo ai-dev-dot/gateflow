@@ -837,9 +837,9 @@ GET /api/audit/logs?
 
 | 配置 | 默认 | 说明 |
 |------|------|------|
-| `AUDIT_LOG_FULL_BODY` | `false` | `true` 时不存 `request_body`/`response_body`（连加密都不存，最小化） |
+| `AUDIT_LOG_FULL_BODY` | `false` | `true` 时 Fernet 加密存完整 `request_body`（admin 显式 `?include_body=true` 可解密查看，写 meta-audit）；`false` 时只存明文 preview、不存加密 body。当前实现无 `response_body` 列 |
 | `AUDIT_LOG_RETENTION_DAYS` | `90` | 超过 N 天的日志由后台任务清理（v0.2.0 实现） |
-| `ENABLE_PII_REDACTION` | `false` | `true` 时接入 Presidio 自动识别 email/phone/身份证/银行卡/AWS Key 等并打码（v0.2.0 实现） |
+| `ENABLE_PII_REDACTION` | `false` | `true` 时对审计链路（请求体 preview/加密 full body、error_message、User-Agent）做 regex 启发式脱敏（不依赖 Presidio），v0.2.0 承诺、v0.3 实现（见 `docs/superpowers/specs/2026-08-22-governance-pii-design.md`） |
 
 ### 6.4 Admin 访问 body 的 meta-audit
 

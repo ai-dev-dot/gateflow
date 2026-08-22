@@ -109,6 +109,8 @@ api_key  = "gf_your_enterprise_token"        # 闸机发的 Token
 
 **参考业界头部做法**：OpenAI Enterprise、Anthropic Console、Cloudflare AI Gateway、AWS Bedrock 都默认不存 body 或做受控访问。GateFlow 选"存加密 + 受控访问"是因为企业内部 debug 经常需要完整上下文。
 
+**PII 脱敏**：设置 `ENABLE_PII_REDACTION=true` 后，写入审计日志的请求体（明文 preview 与加密 full body）、失败原因和 User-Agent 会在落库前做启发式 regex 打码（邮箱/手机号/身份证/银行卡/AWS Key/API Key → `[EMAIL]` 等类别占位）。范围**限定审计链路**（不覆盖 Chat 对话记录表、备份、服务器日志）；regex 为启发式、不保证语义级；默认关闭=零行为变化；修改配置后需重启。
+
 **API Key 与上游 Key**：以 Fernet 加密（上游 Key）+ HMAC 哈希（API Key）形式存储，**任何 list 接口都不返回明文**。完整 Key 仅在创建时一次性返回。
 
 ## 技术栈
