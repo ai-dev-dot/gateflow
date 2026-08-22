@@ -160,6 +160,7 @@ class StreamForwarder:
             response_tokens = 0
             input_tokens = 0
             status_code = 200
+            error_message: str | None = None
             buffer_lines: list[str] = []
             client = await get_http_client()
 
@@ -180,6 +181,7 @@ class StreamForwarder:
                             error_body += chunk
                         error_text = error_body.decode("utf-8", errors="replace")
                         logger.warning(f"Upstream error {status_code}: {error_text[:500]}")
+                        error_message = error_text[:500]
                         yield error_formatter(f"Upstream returned {status_code}", "upstream_error")
                         return
 
@@ -229,6 +231,7 @@ class StreamForwarder:
                 logger.error("Upstream read timeout")
                 yield error_formatter("Upstream read timeout", "timeout")
                 status_code = 504
+                error_message = "Upstream read timeout"
             except Exception as e:
                 # P0-4: never leak str(exception) to client. Log full
                 # context (with request_id) and yield a fixed message
@@ -243,6 +246,7 @@ class StreamForwarder:
                     "internal_error",
                 )
                 status_code = 500
+                error_message = repr(e)[:500]
             finally:
                 latency_ms = int((time.monotonic() - start_time) * 1000)
                 await self._save_after_stream(
@@ -255,6 +259,7 @@ class StreamForwarder:
                     latency_ms=latency_ms,
                     full_content=full_content,
                     on_complete=on_complete,
+                    error_message=error_message,
                 )
 
         return StreamingResponse(
@@ -279,6 +284,7 @@ class StreamForwarder:
         latency_ms: int = 0,
         full_content: str = "",
         on_complete: OnComplete | None = None,
+        error_message: str | None = None,
     ) -> None:
         """Public alias of :meth:`_save_after_stream` for callers outside the
         streaming generator (e.g. one-shot POST bridges).
@@ -297,6 +303,7 @@ class StreamForwarder:
             latency_ms=latency_ms,
             full_content=full_content,
             on_complete=on_complete,
+            error_message=error_message,
         )
 
     async def _save_after_stream(
@@ -311,6 +318,7 @@ class StreamForwarder:
         latency_ms: int,
         full_content: str,
         on_complete: OnComplete | None,
+        error_message: str | None = None,
     ) -> None:
         """Update audit log + key stats in a fresh session.
 
@@ -337,6 +345,7 @@ class StreamForwarder:
                     audit_log.total_tokens = request_tokens + response_tokens
                     audit_log.latency_ms = latency_ms
                     audit_log.completed_at = utcnow()
+                    audit_log.error_message = error_message[:500] if error_message else None
 
                 # Caller hook (e.g. save AI message + conversation title)
                 if on_complete is not None:

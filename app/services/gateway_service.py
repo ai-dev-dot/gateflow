@@ -143,6 +143,7 @@ class GatewayService:
         status_code = 200
         response_tokens = 0
         response_body = {}
+        error_message: str | None = None
 
         try:
             response = await client.post(
@@ -157,10 +158,12 @@ class GatewayService:
                 _, _, response_tokens = adapter.extract_response(response_body)
             else:
                 logger.warning(f"Upstream error {status_code}: {response.text[:500]}")
+                error_message = response.text[:500]
         except httpx.ReadTimeout:
             logger.error("Upstream read timeout")
             status_code = 504
             response_body = adapter.format_error(504, {"detail": "Upstream read timeout"})
+            error_message = "Upstream read timeout"
         except Exception as e:
             # P0-4: never leak str(exception) to client.
             from app.utils.errors import get_request_id_safe
@@ -172,6 +175,9 @@ class GatewayService:
                 500,
                 {"detail": "Internal error", "request_id": rid},
             )
+            # P1-8: persist the exception detail in the audit log (internal
+            # diagnostics only, never echoed to the client).
+            error_message = repr(e)[:500]
 
         latency_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -183,7 +189,8 @@ class GatewayService:
                 if log:
                     audit_service = AuditService(db)
                     await audit_service.record_completion(
-                        log, status_code, request_tokens, response_tokens, latency_ms
+                        log, status_code, request_tokens, response_tokens, latency_ms,
+                        error_message=error_message,
                     )
                 key_service = ProviderKeyService(db)
                 if status_code == 200:

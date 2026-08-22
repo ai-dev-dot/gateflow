@@ -46,6 +46,11 @@ class AuditLog(Base):
     total_tokens = Column(Integer, default=0, nullable=False)
     latency_ms = Column(Integer, nullable=True)
     status_code = Column(Integer, nullable=True)
+    # Internal error detail (upstream error body / exception repr / "stale"
+    # marker from the pending-cleanup task). Server-side diagnostics only -
+    # never echoed to the LLM client (P0-4); safe to surface in admin/user
+    # audit views since it carries no credentials.
+    error_message = Column(Text, nullable=True)
     is_stream = Column(Boolean, default=False, nullable=False)
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(500), nullable=True)

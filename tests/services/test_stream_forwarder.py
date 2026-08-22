@@ -214,6 +214,8 @@ async def test_upstream_error_marks_failed_and_updates_key(db_session, test_user
         log = result.scalar_one()
         assert log.status == "failed"
         assert log.status_code == 429
+        # P1-8: upstream error body is persisted for diagnostics
+        assert log.error_message == "Rate limited"
 
         from app.models.provider_key import ProviderAPIKey
 
@@ -260,6 +262,81 @@ async def test_token_counts_captured_from_usage_chunk(db_session, test_user):
         # only applies to transformed mode. In passthrough we keep the estimate.
         # For now, just verify log is completed.
         assert log.status == "completed"
+
+
+# ---------- P1-8: error_message persistence ----------
+
+
+class FailingUpstreamStream:
+    """Fake client whose stream() call raises immediately (transport error)."""
+
+    def __init__(self, exc):
+        self.exc = exc
+
+    def stream(self, method, url, **kwargs):
+        raise self.exc
+
+
+@pytest.mark.asyncio
+async def test_stream_exception_persists_error_message(db_session, test_user):
+    """P1-8: an unexpected exception mid-stream lands its repr in
+    audit_logs.error_message (status 500 / 'failed'), alongside the fixed
+    client-facing SSE error."""
+    adapter = OpenAIAdapter()
+    audit_log, pk = await _make_audit_and_key(db_session, test_user)
+
+    boom = RuntimeError("connection reset by peer")
+    fake_client = FailingUpstreamStream(boom)
+
+    factory = _session_factory(db_session)
+    forwarder = StreamForwarder(db_session, adapter, session_factory=factory)
+    with patch(
+        "app.services.stream_forwarder.get_http_client", AsyncMock(return_value=fake_client)
+    ):
+        response = await forwarder.forward(
+            upstream_url="https://api.openai.com/v1/chat/completions",
+            upstream_headers={"Authorization": "Bearer sk-test"},
+            forward_body={"model": "gpt-4", "stream": True, "messages": []},
+            audit_log=audit_log,
+            provider_key_id=pk.id,
+            request_tokens=10,
+        )
+        chunks = []
+        async for chunk in response.body_iterator:
+            chunks.append(chunk)
+
+    async with factory() as verify:
+        result = await verify.execute(select(AuditLog).where(AuditLog.id == audit_log.id))
+        log = result.scalar_one()
+        assert log.status == "failed"
+        assert log.status_code == 500
+        assert log.error_message is not None
+        assert "RuntimeError" in log.error_message
+        assert "connection reset by peer" in log.error_message
+
+
+@pytest.mark.asyncio
+async def test_save_after_stream_error_message_persists(db_session, test_user):
+    """P1-8: the public save_after_stream entry point (used by the Anthropic
+    non-streaming bridge) also persists error_message."""
+    audit_log, pk = await _make_audit_and_key(db_session, test_user)
+    factory = _session_factory(db_session)
+    forwarder = StreamForwarder(db_session, OpenAIAdapter(), session_factory=factory)
+
+    await forwarder.save_after_stream(
+        audit_log_id=audit_log.id,
+        provider_key_id=pk.id,
+        status_code=502,
+        request_tokens=5,
+        error_message='upstream said: {"error":"bad gateway"}',
+    )
+
+    async with factory() as verify:
+        result = await verify.execute(select(AuditLog).where(AuditLog.id == audit_log.id))
+        log = result.scalar_one()
+        assert log.status == "failed"
+        assert log.status_code == 502
+        assert log.error_message == 'upstream said: {"error":"bad gateway"}'
 
 
 # ---------- P1-2: public save_after_stream + transform_chunk hook ----------

@@ -43,6 +43,9 @@ class AuditLogListItem(BaseModel):
     total_tokens: int
     latency_ms: int | None = None
     status_code: int | None = None
+    # Internal diagnostics (upstream error body / exception repr, truncated
+    # to 500 chars). Populated only for failed calls. Contains no credentials.
+    error_message: str | None = None
     is_stream: bool
     ip_address: str | None = None
     user_agent: str | None = None

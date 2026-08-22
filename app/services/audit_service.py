@@ -119,6 +119,7 @@ class AuditService:
         request_tokens: int = 0,
         response_tokens: int = 0,
         latency_ms: int = 0,
+        error_message: str | None = None,
     ) -> None:
         """记录一次请求的完成状态（在流结束/响应结束后调用）。
 
@@ -133,6 +134,9 @@ class AuditService:
         log.latency_ms = latency_ms
         log.completed_at = utcnow()
         log.status = "completed" if status_code == 200 else "failed"
+        # 内部诊断信息（上游错误 body / 异常 repr），截断 500 字符。
+        # 仅落库供审计视图查看，永不回显给 LLM 客户端（P0-4）。
+        log.error_message = error_message[:500] if error_message else None
 
     # ---------- 读取路径（管理后台用）----------
 

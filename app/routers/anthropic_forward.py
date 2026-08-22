@@ -215,6 +215,7 @@ async def _bridge_non_streaming(
             provider_key_id=provider_key_id,
             status_code=500,
             request_tokens=request_tokens,
+            error_message=repr(e)[:500],
         )
         return JSONResponse(
             status_code=500,
@@ -243,6 +244,7 @@ async def _bridge_non_streaming(
         provider_key_id=provider_key_id,
         status_code=response.status_code,
         request_tokens=request_tokens,
+        error_message=response.text[:500],
     )
     return JSONResponse(
         status_code=response.status_code,

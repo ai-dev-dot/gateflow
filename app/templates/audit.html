@@ -89,11 +89,15 @@ async function loadLogs() {
       tbody.innerHTML = logs.map(l => {
         const isSuccess = l.status === 'success';
         const httpOk = l.http_status && l.http_status < 400;
+        // P1-8: failed rows carry diagnostics in error_message - surface it
+        // as a hover tooltip on the status tag (escaped, DB-sourced).
+        const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const errTitle = !isSuccess && l.error_message ? ` title="${esc(l.error_message)}" style="cursor: help;"` : '';
         return `<tr>
           <td>${formatDateTime(l.timestamp || l.created_at)}</td>
           <td>${l.username || l.user_id || '—'}</td>
           <td>${l.model_alias || l.model || '—'}</td>
-          <td>${isSuccess ? '<span class="gf-tag gf-tag-green">success</span>' : '<span class="gf-tag gf-tag-red">' + (l.status || 'error') + '</span>'}</td>
+          <td>${isSuccess ? '<span class="gf-tag gf-tag-green">success</span>' : `<span class="gf-tag gf-tag-red"${errTitle}>${l.status || 'error'}</span>`}</td>
           <td class="text-right">${l.request_tokens ?? '—'}</td>
           <td class="text-right">${l.response_tokens ?? '—'}</td>
           <td class="text-right">${l.latency_ms != null ? l.latency_ms + ' ms' : '—'}</td>

@@ -90,6 +90,65 @@ async def test_record_completion_failure(db_session, test_user):
 
 
 @pytest.mark.asyncio
+async def test_record_completion_persists_error_message(db_session, test_user):
+    """P1-8: failure diagnostics land in audit_logs.error_message; success
+    keeps it NULL."""
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="gpt-4",
+        provider="openai",
+        path="/v1/chat/completions",
+        request_body=None,
+        is_stream=False,
+    )
+    await db_session.commit()
+
+    await service.record_completion(
+        log,
+        status_code=500,
+        request_tokens=10,
+        error_message="ValueError('boom')",
+    )
+    await db_session.commit()
+    assert log.error_message == "ValueError('boom')"
+
+    # Success path keeps the field empty
+    log2 = await service.create_pending_log(
+        user=test_user,
+        model="gpt-4",
+        provider="openai",
+        path="/v1/chat/completions",
+        request_body=None,
+        is_stream=False,
+    )
+    await db_session.commit()
+    await service.record_completion(log2, status_code=200, request_tokens=1)
+    await db_session.commit()
+    assert log2.error_message is None
+
+
+@pytest.mark.asyncio
+async def test_record_completion_truncates_error_message(db_session, test_user):
+    """P1-8: error_message is capped at 500 chars regardless of input size."""
+    service = AuditService(db_session)
+    log = await service.create_pending_log(
+        user=test_user,
+        model="gpt-4",
+        provider="openai",
+        path="/v1/chat/completions",
+        request_body=None,
+        is_stream=False,
+    )
+    await db_session.commit()
+
+    await service.record_completion(log, status_code=500, error_message="x" * 2000)
+    await db_session.commit()
+    assert log.error_message is not None
+    assert len(log.error_message) == 500
+
+
+@pytest.mark.asyncio
 async def test_snapshot_unchanged_after_user_mutation(db_session, test_user):
     """THE core invariant: rename user/department AFTER audit log created,
     old audit log's snapshot fields stay unchanged.
