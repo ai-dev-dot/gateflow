@@ -1,7 +1,7 @@
 # PII 脱敏实现计划
 
 > 日期：2026-08-22
-> 状态：已实现（215 测试绿，ruff 无新警告；E2E 待跑）
+> 状态：已实现并验收（265 测试绿，ruff 无新警告；E2E 已于 2026-08-22 跑通：PII 开启 37 项断言 + 关闭回归 5 项断言）
 > 上游：`docs/superpowers/specs/2026-08-22-governance-pii-design.md`（v0.4，已确认）
 > 目标：把 `ENABLE_PII_REDACTION` 从死配置变成真开关——审计链路（request body / preview / error_message / user_agent）落库前 regex 脱敏；开关默认 false，行为零变化。
 > 验收基线：spec §6 九条验收口径（本文按此展开测试）。
