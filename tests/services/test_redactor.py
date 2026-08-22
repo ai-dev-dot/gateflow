@@ -125,6 +125,24 @@ def test_long_alnum_block_no_pii_unchanged():
         assert redact_text(s) == s, f"len={len(s)} 的长块不应被改写"
 
 
+def test_email_overlong_local_part_not_partially_masked():
+    """local-part >64 字符的 email 候选必须整体不命中（RFC 5321 上限 64）。
+
+    回归：e1c016a 的性能前瞻 ``(?=[...]{1,64}@)`` 只约束位置 0，re 从
+    位置 1 重试时前瞻成功（见 64 个 local 字符 + @），导致 ``a*65@x.com``
+    被掩成 ``a[EMAIL]``——首字符泄露 + 错误掩码。lookbehind 挡住从
+    local-part 字符中间起始的重试，整串不落掩码（宁漏不误伤）。
+    """
+    s64 = "a" * 64 + "@example.com"  # 边界：64 字符合法
+    assert redact_text(s64) == "[EMAIL]"
+    s65 = "a" * 65 + "@example.com"  # 超长：不掩码（不泄露首字符）
+    assert redact_text(s65) == s65
+    s70 = "a" * 70 + "@example.com"
+    assert redact_text(s70) == s70
+    # 前置非 local 字符仍能正常匹配后面的合法邮箱
+    assert redact_text(f"pad:{s64}") == "pad:[EMAIL]"
+
+
 # ---------- 边界：Unicode / 中文 / 幂等 ----------
 
 
